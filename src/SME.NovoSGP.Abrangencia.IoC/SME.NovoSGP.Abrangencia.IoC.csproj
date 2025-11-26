@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Infra\SME.NovoSGP.Abrangencia.Infra.csproj" />
+  </ItemGroup>
+
 </Project>

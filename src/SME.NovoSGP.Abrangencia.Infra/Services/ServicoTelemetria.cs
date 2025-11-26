@@ -20,7 +20,7 @@ public class ServicoTelemetria : IServicoTelemetria
         var transacao = new ServicoTelemetriaTransacao(rota);
 
         if (telemetriaOptions.Apm)
-            transacao.TransacaoApm = Agent.Tracer.StartTransaction(rota, "WorkerRabbitNovoSGP.Abrangencia");
+            transacao.TransacaoApm = Agent.Tracer.StartTransaction(rota, "WorkerRabbitNovoSGPAbrangencia");
 
         if (!telemetriaOptions.ApplicationInsights)
             return transacao;
