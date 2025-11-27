@@ -2,38 +2,36 @@
 using Dommel;
 using Npgsql;
 using SME.NovoSGP.Abrangencia.Dados.Interfaces;
-using SME.NovoSGP.Abrangencia.Dominio;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
 using SME.NovoSGP.Abrangencia.Dominio.Extensoes;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using System.Data;
 
-namespace SME.NovoSGP.Abrangencia.Dados.Repositorio;
+namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.Base;
 
-public abstract class RepositorioBase<T> : IRepositorioBase<T> where T : EntidadeBase
+public class RepositorioBaseAbrangencia<T> : RepositorioBase, IRepositorioBase<T> where T : EntidadeBase
 {
     private readonly IContextoAplicacao contextoAplicacao;
     private readonly ConnectionStringOptions connectionStrings;
 
-    protected RepositorioBase(ConnectionStringOptions connectionStrings, IContextoAplicacao contextoAplicacao)
+    public RepositorioBaseAbrangencia(ConnectionStringOptions connectionStrings, IContextoAplicacao contextoAplicacao) : base(contextoAplicacao)
     {
-        this.connectionStrings = connectionStrings ?? throw new ArgumentNullException(nameof(connectionStrings));
-        this.contextoAplicacao = contextoAplicacao ?? throw new ArgumentNullException(nameof(contextoAplicacao));
+        this.connectionStrings = connectionStrings;
     }
 
     protected virtual IDbConnection ObterConexaoAbrangencia()
     {
         try
         {
-            var conexao = new NpgsqlConnection(connectionStrings.AbrangenciaPostgres);
+            var conexao = new NpgsqlConnection(connectionStrings.Abrangencia_Postgres);
             conexao.Open();
             return conexao;
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"ERRO CRÍTICO: Falha ao abrir a conexão com o banco de dados. Mensagem: {ex.Message}");
-            throw new InvalidOperationException("Falha ao inicializar SondagemContext: Não foi possível abrir a conexão com o banco de dados.", ex);
+            throw new InvalidOperationException("Falha ao inicializar Abrangencia_Postgres: Não foi possível abrir a conexão com o banco de dados.", ex);
         }
     }
 
@@ -41,14 +39,14 @@ public abstract class RepositorioBase<T> : IRepositorioBase<T> where T : Entidad
     {
         try
         {
-            var conexao = new NpgsqlConnection(connectionStrings.AbrangenciaPostgresConsulta);
+            var conexao = new NpgsqlConnection(connectionStrings.Abrangencia_PostgresConsulta);
             conexao.Open();
             return conexao;
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"ERRO CRÍTICO: Falha ao abrir a conexão com o banco de dados. Mensagem: {ex.Message}");
-            throw new InvalidOperationException("Falha ao inicializar SondagemContext: Não foi possível abrir a conexão com o banco de dados.", ex);
+            throw new InvalidOperationException("Falha ao inicializar Abrangencia_PostgresConsulta: Não foi possível abrir a conexão com o banco de dados.", ex);
         }
     }
 
@@ -125,7 +123,7 @@ public abstract class RepositorioBase<T> : IRepositorioBase<T> where T : Entidad
             {
                 entidade.CriadoPor = UsuarioLogadoNomeCompleto;
                 entidade.CriadoRF = UsuarioLogadoRF;
-                entidade.Id = (long)(await conexao.InsertAsync(entidade));
+                entidade.Id = (long)await conexao.InsertAsync(entidade);
             }
         }
         finally
@@ -142,7 +140,7 @@ public abstract class RepositorioBase<T> : IRepositorioBase<T> where T : Entidad
         var conexao = ObterConexaoAbrangencia();
         try
         {
-            var tableName = Dommel.Resolvers.Table(typeof(T), conexao);
+            var tableName = Resolvers.Table(typeof(T), conexao);
             var columName = coluna ?? "id";
 
             var query = $@"update {tableName} 
@@ -209,44 +207,4 @@ public abstract class RepositorioBase<T> : IRepositorioBase<T> where T : Entidad
             cancellationToken: cancellationToken
         );
     }
-
-    public IEnumerable<T> Listar()
-    {
-        throw new NotImplementedException();
-    }
-
-    public T ObterPorId(long id)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Remover(long id)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void Remover(T entidade)
-    {
-        throw new NotImplementedException();
-    }
-
-    public long Salvar(T entidade)
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task<bool> Exists(long id, string coluna = null)
-    {
-        throw new NotImplementedException();
-    }
-
-    public string UsuarioLogado => contextoAplicacao.UsuarioLogado;
-
-    public string UsuarioLogadoNomeCompleto => contextoAplicacao.NomeUsuario;
-
-    public string PerfilUsuario => contextoAplicacao.PerfilUsuario;
-
-    public string UsuarioLogadoRF => contextoAplicacao.ObterVariavel<string>("RF") ?? "0";
-
-    public string Administrador => contextoAplicacao.Administrador;
 }

@@ -17,8 +17,4 @@
     <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Dominio\SME.NovoSGP.Abrangencia.Dominio.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Dtos\" />
-  </ItemGroup>
-
 </Project>

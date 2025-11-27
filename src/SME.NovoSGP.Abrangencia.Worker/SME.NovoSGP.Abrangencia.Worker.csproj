@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Aplicacao\SME.NovoSGP.Abrangencia.Aplicacao.csproj" />
     <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Dados\SME.NovoSGP.Abrangencia.Dados.csproj" />
     <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Infra\SME.NovoSGP.Abrangencia.Infra.csproj" />
     <ProjectReference Include="..\SME.NovoSGP.Abrangencia.IoC\SME.NovoSGP.Abrangencia.IoC.csproj" />

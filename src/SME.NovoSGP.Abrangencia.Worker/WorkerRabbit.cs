@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using SME.NovoSGP.Abrangencia.Aplicacao.Interfaces;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
 using SME.NovoSGP.Abrangencia.Dominio.Enums;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
@@ -19,7 +20,6 @@ public class WorkerRabbit : BackgroundService
 {
     private readonly IServiceScopeFactory serviceScopeFactory;
     private readonly RabbitOptions rabbitOptions;
-    private readonly ConnectionFactory connectionFactory;
     private readonly ILogger<WorkerRabbit> logger;
     private readonly IServicoTelemetria servicoTelemetria;
     private readonly IServicoLog servicoLog;
@@ -30,7 +30,6 @@ public class WorkerRabbit : BackgroundService
     public WorkerRabbit(
         IServiceScopeFactory serviceScopeFactory,
         RabbitOptions rabbitOptions,
-        ConnectionFactory connectionFactory,
         ILogger<WorkerRabbit> logger,
         IServicoTelemetria servicoTelemetria,
         IServicoLog servicoLog,
@@ -38,7 +37,6 @@ public class WorkerRabbit : BackgroundService
     {
         this.serviceScopeFactory = serviceScopeFactory ?? throw new ArgumentNullException(nameof(serviceScopeFactory));
         this.rabbitOptions = rabbitOptions ?? throw new ArgumentNullException(nameof(rabbitOptions));
-        this.connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         this.servicoTelemetria = servicoTelemetria ?? throw new ArgumentNullException(nameof(servicoTelemetria));
         this.servicoLog = servicoLog ?? throw new ArgumentNullException(nameof(servicoLog));
@@ -132,9 +130,21 @@ public class WorkerRabbit : BackgroundService
         argsDlq.Add("x-queue-mode", "lazy");
 
         return argsDlq;
+
+        //var argsDlq = new Dictionary<string, object>();
+
+        //argsDlq.Add("x-queue-mode", "lazy");
+        //if (retryAutomatico)
+        //{
+        //    var ttl = comandos.ContainsKey(fila) ? comandos[fila].TTL : ExchangeRabbit.WorkerAbrangenciaDeadLetterTtl;
+        //    argsDlq.Add("x-message-ttl", ttl);
+        //    argsDlq.Add("x-dead-letter-exchange", exchange);
+        //}
+
+        //return argsDlq;
     }
 
-    private ulong GetRetryCount(IReadOnlyBasicProperties properties) // ✅ Alterado para IReadOnlyBasicProperties
+    private ulong GetRetryCount(IReadOnlyBasicProperties properties)
     {
         if (properties.Headers == null || !properties.Headers.ContainsKey("x-death"))
             return 0;
@@ -155,7 +165,7 @@ public class WorkerRabbit : BackgroundService
 
     private void RegistrarUseCases()
     {
-        //comandos.Add(RotasRabbit.TratarProvasUesTotalAlunosAcompanhamento, new ComandoRabbit("Tratar provas ues total alunos", typeof(ITratarProvasUesTotalAlunosAcompanhamentoUseCase)));
+        comandos.Add(RotasRabbit.IniciarSync, new ComandoRabbit("Tratar provas ues total alunos", typeof(IAbrangenciaUseCase)));
     }
 
     private async Task InicializaConsumerAsync(IChannel channel, CancellationToken stoppingToken)
@@ -187,6 +197,7 @@ public class WorkerRabbit : BackgroundService
     private async Task TratarMensagem(BasicDeliverEventArgs ea, IChannel channel)
     {
         var mensagem = Encoding.UTF8.GetString(ea.Body.ToArray());
+        logger.LogInformation("Mensagem recebida: {mensagem}", mensagem);
         var rota = ea.RoutingKey;
 
         if (comandos.ContainsKey(rota))

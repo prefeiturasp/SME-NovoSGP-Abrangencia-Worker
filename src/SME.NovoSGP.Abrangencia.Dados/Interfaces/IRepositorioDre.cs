@@ -2,8 +2,7 @@
 
 namespace SME.NovoSGP.Abrangencia.Dados.Interfaces;
 
-public interface IRepositorioBase<T> where T : EntidadeBase
+public interface IRepositorioDre
 {
-    Task<long> SalvarAsync(T entidade);
+    Task<IEnumerable<Dre>> SincronizarAsync(IEnumerable<Dre> entidades);
 }
-
