@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MediatR" Version="13.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Aplicacao\SME.NovoSGP.Abrangencia.Aplicacao.csproj" />
+    <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Dados\SME.NovoSGP.Abrangencia.Dados.csproj" />
     <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Infra\SME.NovoSGP.Abrangencia.Infra.csproj" />
   </ItemGroup>
 

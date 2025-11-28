@@ -6,7 +6,7 @@ using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using System.Data;
 
-namespace SME.NovoSGP.Abrangencia.Dados.Repositorio;
+namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 
 public class RepositorioUe : RepositorioBaseSGP<Ue>, IRepositorioUe
 {
@@ -76,7 +76,7 @@ public class RepositorioUe : RepositorioBaseSGP<Ue>, IRepositorioUe
             item.DataAtualizacao = DateTime.Today;
             item.Dre = dres.First(x => x.CodigoDre == item.Dre.CodigoDre);
             item.DreId = item.Dre.Id;
-            item.Id = (long)await SalvarAsync(item);
+            item.Id = await SalvarAsync(item);
             resultado.Add(item);
         }
     }

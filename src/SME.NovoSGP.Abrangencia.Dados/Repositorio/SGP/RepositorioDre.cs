@@ -5,7 +5,7 @@ using SME.NovoSGP.Abrangencia.Dominio.Entidades;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 
-namespace SME.NovoSGP.Abrangencia.Dados.Repositorio;
+namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 
 public class RepositorioDre : RepositorioBaseSGP<Dre>, IRepositorioDre
 {
@@ -30,7 +30,7 @@ public class RepositorioDre : RepositorioBaseSGP<Dre>, IRepositorioDre
             foreach (var item in novos)
             {
                 item.DataAtualizacao = DateTime.Today;
-                item.Id = (long)await SalvarAsync(item);
+                item.Id = await SalvarAsync(item);
 
                 resultado.Add(item);
             }

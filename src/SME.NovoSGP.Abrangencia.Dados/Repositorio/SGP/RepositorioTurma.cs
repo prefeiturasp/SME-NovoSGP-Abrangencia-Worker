@@ -7,7 +7,7 @@ using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using System.Data;
 
-namespace SME.NovoSGP.Abrangencia.Dados.Repositorio;
+namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 
 public class RepositorioTurma : RepositorioBaseSGP<Turma>, IRepositorioTurma
 {
@@ -76,7 +76,7 @@ public class RepositorioTurma : RepositorioBaseSGP<Turma>, IRepositorioTurma
                     item.DataAtualizacao = DateTime.Today;
                     item.Ue = ues.First(x => x.CodigoUe == item.Ue.CodigoUe);
                     item.UeId = item.Ue.Id;
-                    item.Id = (long)await SalvarAsync(item);
+                    item.Id = await SalvarAsync(item);
                     resultado.Add(item);
                 }
 
@@ -94,9 +94,9 @@ public class RepositorioTurma : RepositorioBaseSGP<Turma>, IRepositorioTurma
                                         c.EtapaEJA != l.EtapaEJA ||
                                         c.SerieEnsino != l.SerieEnsino ||
                                         c.DataInicio.HasValue != l.DataInicio.HasValue ||
-                                        (c.DataInicio.HasValue && l.DataInicio.HasValue && c.DataInicio.Value.Date != l.DataInicio.Value.Date) ||
+                                        c.DataInicio.HasValue && l.DataInicio.HasValue && c.DataInicio.Value.Date != l.DataInicio.Value.Date ||
                                         c.DataFim.HasValue != l.DataFim.HasValue ||
-                                        (c.DataFim.HasValue && l.DataFim.HasValue && c.DataFim.Value.Date != l.DataFim.Value.Date)
+                                        c.DataFim.HasValue && l.DataFim.HasValue && c.DataFim.Value.Date != l.DataFim.Value.Date
                                   select new Turma()
                                   {
                                       Ano = c.Ano,
@@ -246,6 +246,24 @@ public class RepositorioTurma : RepositorioBaseSGP<Turma>, IRepositorioTurma
                       pe.bimestre = 1 and                      
                       t.dt_fim_eol is not null and 
                       t.dt_fim_eol {(definirTurmasComoHistorica ? ">=" : "<")} pe.periodo_inicio";
+
+    public async Task<IEnumerable<Turma>> ObterTurmasPorIds(long[] turmasIds)
+    {
+        using var conn = ObterConexaoSGPConsulta();
+        try
+        {
+            var query = @"select *
+                         from turma
+                        where id = any(@turmasIds)";
+
+            return await conn.QueryAsync<Turma>(query, new { turmasIds });
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
+    }
 
     private const string Update = @"
                     update

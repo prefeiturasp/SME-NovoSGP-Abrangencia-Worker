@@ -23,6 +23,7 @@ RegistraDependencias.Registrar(builder.Services);
 ConfigureServices(builder.Services, builder.Configuration);
 ConfigurarRabbitmq(builder.Services, builder.Configuration);
 ConfigurarRabbitmqLog(builder.Services, builder.Configuration);
+ConfigurarConexoes(builder.Services, builder.Configuration);
 
 builder.Services.AddHostedService<WorkerRabbit>();
 
@@ -117,4 +118,11 @@ static void ConfigurarRabbitmqLog(IServiceCollection services, IConfiguration co
 
     var conexaoRabbitLog = factoryLog.CreateConnectionAsync().Result;
     IChannel channelLog = conexaoRabbitLog.CreateChannelAsync().Result;
+}
+
+static void ConfigurarConexoes(IServiceCollection services, IConfiguration configuration)
+{
+    var connectionStringOptions = new ConnectionStringOptions();
+    configuration.GetSection(ConnectionStringOptions.Secao).Bind(connectionStringOptions, c => c.BindNonPublicProperties = true);
+    services.AddSingleton(connectionStringOptions);
 }

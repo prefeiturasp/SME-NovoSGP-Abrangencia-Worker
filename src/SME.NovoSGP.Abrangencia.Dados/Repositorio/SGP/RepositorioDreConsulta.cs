@@ -5,7 +5,7 @@ using SME.NovoSGP.Abrangencia.Dominio.Entidades;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 
-namespace SME.NovoSGP.Abrangencia.Dados.Repositorio;
+namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 
 public class RepositorioDreConsulta : RepositorioBaseSGP<Dre>, IRepositorioDreConsulta
 {

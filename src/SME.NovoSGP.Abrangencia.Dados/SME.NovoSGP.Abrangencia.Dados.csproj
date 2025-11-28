@@ -17,4 +17,9 @@
     <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Infra\SME.NovoSGP.Abrangencia.Infra.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Repositorio\EOL\" />
+    <Folder Include="Repositorio\Abrangencia\" />
+  </ItemGroup>
+
 </Project>

@@ -6,7 +6,7 @@ using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using System.Text;
 
-namespace SME.NovoSGP.Abrangencia.Dados.Repositorio
+namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP
 {
     public class RepositorioSupervisorEscolaDre : RepositorioBaseSGP<SupervisorEscolaDre>, IRepositorioSupervisorEscolaDre
     {

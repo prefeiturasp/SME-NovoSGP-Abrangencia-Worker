@@ -1,6 +1,6 @@
-﻿namespace SME.NovoSGP.Abrangencia.Infra.Enumerados;
+﻿namespace SME.NovoSGP.Abrangencia.Dominio.Enumerados;
 
-public enum AbrangenciaEnum
+public enum Abrangencia
 {
     UE = 1,
     Professor = 2,

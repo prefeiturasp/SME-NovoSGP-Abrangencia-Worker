@@ -6,11 +6,13 @@ using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaEolSupervisor;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaParaSupervisor;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterDreMaterializarCodigos;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterEstruturaInstuticionalVigentePorTurma;
+using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterTurmasPorIds;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterUeMaterializarCodigos;
 using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dominio.Constantes;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
 using SME.NovoSGP.Abrangencia.Dominio.Enumerados;
+using SME.NovoSGP.Abrangencia.Entidades;
 using SME.NovoSGP.Abrangencia.Infra.Dtos;
 using SME.NovoSGP.Abrangencia.Infra.Fila;
 
@@ -22,18 +24,20 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
     private readonly IRepositorioTurma repositorioTurma;
     private readonly IRepositorioUe repositorioUe;
     private readonly IRepositorioDre repositorioDre;
-    public AbrangenciaUseCase(IMediator mediator, IChannel channel, IRepositorioAbrangencia repositorioAbrangencia, IRepositorioTurma repositorioTurma, IRepositorioUe repositorioUe, IRepositorioDre repositorioDre) : base(mediator, channel)
+    private readonly IUnitOfWork unitOfWork;
+    public AbrangenciaUseCase(IMediator mediator, IChannel channel, IRepositorioAbrangencia repositorioAbrangencia, IRepositorioTurma repositorioTurma, IRepositorioUe repositorioUe, IRepositorioDre repositorioDre, IUnitOfWork unitOfWork) : base(mediator, channel)
     {
         this.repositorioAbrangencia = repositorioAbrangencia;
         this.repositorioTurma = repositorioTurma;
         this.repositorioUe = repositorioUe;
         this.repositorioDre = repositorioDre;
+        this.unitOfWork = unitOfWork;
     }
 
     public async Task<bool> Executar(MensagemRabbit param)
     {
-        string login = "";
-        Guid perfil = new Guid();
+        string login = "marlon.amcom";
+        Guid perfil = Guid.Parse("5be1e074-37d6-e911-abd6-f81654fe895d");
 
         AbrangenciaCompactaVigenteRetornoEOLDTO consultaEol = null;
         AbrangenciaCompactaVigenteRetornoEOLDTO abrangenciaEol = null;
@@ -72,8 +76,8 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
                 // sincronizamos as dres, ues e turmas
                 var estrutura = await MaterializarEstruturaInstitucional(abrangenciaEol);
 
-                //// sincronizamos a abrangencia do login + perfil
-                //await SincronizarAbrangencia(abrangenciaSintetica, abrangenciaEol?.Abrangencia?.Abrangencia, ehSupervisor, estrutura, login, perfil);
+                // sincronizamos a abrangencia do login + perfil
+                await SincronizarAbrangencia(abrangenciaSintetica, abrangenciaEol?.Abrangencia?.Abrangencia, ehSupervisor, estrutura, login, perfil);
             }
         }
 
@@ -94,8 +98,8 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
     {
         IEnumerable<Dre> dres = Enumerable.Empty<Dre>();
         IEnumerable<Ue> ues = Enumerable.Empty<Ue>();
-        IEnumerable<Turma> turmas = Enumerable.Empty<Turma>();
-        string[] codigosNaoEncontrados;
+        List<Turma> turmas = new List<Turma>();
+        string[] codigosNaoEncontrados = [];
 
         if (abrangenciaEol.IdDres != null && abrangenciaEol.IdDres.Length > 0)
         {
@@ -113,8 +117,8 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
 
         if (abrangenciaEol.IdTurmas != null && abrangenciaEol.IdTurmas.Length > 0)
         {
-            //turmas = await repositorioTurma.MaterializarCodigosTurma(abrangenciaEol.IdTurmas, codigosNaoEncontrados)
-            //    .Union(await ImportarTurmasNaoEncontradas(codigosNaoEncontrados));
+            turmas.AddRange(await repositorioTurma.MaterializarCodigosTurma(abrangenciaEol.IdTurmas, codigosNaoEncontrados));
+            turmas.AddRange(await ImportarTurmasNaoEncontradas(codigosNaoEncontrados));
         }
 
         return (dres, ues, turmas);
@@ -133,34 +137,198 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
 
     }
 
+    private async Task SincronizarAbrangencia(IEnumerable<AbrangenciaSintetica> abrangenciaSintetica, Dominio.Enumerados.Abrangencia? abrangencia, bool ehSupervisor, (IEnumerable<Dre> Dres, IEnumerable<Ue> Ues, IEnumerable<Turma> Turmas) estrutura, string login, Guid perfil)
+    {
+        unitOfWork.IniciarTransacao();
+        try
+        {
+            if (ehSupervisor)
+                await SincronizarAbrangenciaPorUes(abrangenciaSintetica, estrutura.Ues, login, perfil);
+            else
+            {
+                switch (abrangencia)
+                {
+                    case Dominio.Enumerados.Abrangencia.Dre:
+                    case Dominio.Enumerados.Abrangencia.SME:
+                        await SincronizarAbrangenciaPorDres(abrangenciaSintetica, estrutura.Dres, login, perfil);
+                        break;
+
+                    case Dominio.Enumerados.Abrangencia.DreEscolasAtribuidas:
+                    case Dominio.Enumerados.Abrangencia.UeTurmasDisciplinas:
+                    case Dominio.Enumerados.Abrangencia.UE:
+                        if (perfil.EhPerfilPOA())
+                            await SincronizarAbragenciaPorTurmas(abrangenciaSintetica, estrutura.Turmas, login, perfil);
+                        else
+                            await SincronizarAbrangenciaPorUes(abrangenciaSintetica, estrutura.Ues, login, perfil);
+                        break;
+
+                    case Dominio.Enumerados.Abrangencia.Professor:
+                        await SincronizarAbragenciaPorTurmas(abrangenciaSintetica, estrutura.Turmas, login, perfil);
+                        break;
+                }
+            }
+            unitOfWork.PersistirTransacao();
+        }
+        catch
+        {
+            unitOfWork.Rollback();
+            throw;
+        }
+    }
+
+    private Task SincronizarAbrangenciaPorUes(
+                                                IEnumerable<AbrangenciaSintetica> abrangenciaSintetica,
+                                                IEnumerable<Ue> ues,
+                                                string login,
+                                                Guid perfil)
+    {
+        return SincronizarAbrangenciaGenerico(
+            abrangenciaSintetica,
+            ues,
+            a => a.UeId,
+            u => u.Id,
+            u => new Dominio.Entidades.Abrangencia
+            {
+                Perfil = perfil,
+                UeId = u.Id
+            },
+            login);
+    }
+
+    private Task SincronizarAbrangenciaPorDres(
+                                    IEnumerable<AbrangenciaSintetica> abrangenciaSintetica,
+                                    IEnumerable<Dre> dres,
+                                    string login,
+                                    Guid perfil)
+    {
+        return SincronizarAbrangenciaGenerico(
+            abrangenciaSintetica,
+            dres,
+            a => a.DreId,
+            d => d.Id,
+            d => new Dominio.Entidades.Abrangencia
+            {
+                Perfil = perfil,
+                DreId = d.Id
+            },
+            login);
+    }
+
+
+
+    private async Task SincronizarAbrangenciaGenerico<T>(
+                                                            IEnumerable<AbrangenciaSintetica> abrangenciasAtuais,
+                                                            IEnumerable<T> entidades,
+                                                            Func<AbrangenciaSintetica, long?> obterIdAbrangencia,
+                                                            Func<T, long> obterIdEntidade,
+                                                            Func<T, Dominio.Entidades.Abrangencia> criarAbrangencia,
+                                                            string login)
+    {
+        var novas = entidades
+            .Where(e => !abrangenciasAtuais
+                .Select(a => obterIdAbrangencia(a))
+                .Contains(obterIdEntidade(e)));
+
+        await repositorioAbrangencia.InserirAbrangencias(
+            novas.Select(criarAbrangencia), login);
+
+        var paraAtualizar = abrangenciasAtuais
+            .Where(a => !entidades
+                .Select(obterIdEntidade)
+                .Contains(obterIdAbrangencia(a) ?? 0));
+
+        var perfisHistorico = paraAtualizar
+            .Where(a => a.EhPerfilProfessor())
+            .Select(a => a.Id);
+
+        await repositorioAbrangencia.AtualizaAbrangenciaHistorica(perfisHistorico);
+
+        var perfisGestao = paraAtualizar
+            .Where(a => !a.EhPerfilProfessor())
+            .Select(a => a.Id);
+
+        await repositorioAbrangencia.ExcluirAbrangencias(perfisGestao);
+    }
+
+
+    private async Task SincronizarAbragenciaPorTurmas(IEnumerable<AbrangenciaSintetica> abrangenciaSintetica, IEnumerable<Turma> turmas, string login, Guid perfil)
+    {
+        bool ehPerfilProfessorInfantil = perfil == Perfis.PERFIL_PROFESSOR_INFANTIL;
+        abrangenciaSintetica = RemoverAbrangenciaSinteticaDuplicada(abrangenciaSintetica);
+        var abr = abrangenciaSintetica.GroupBy(x => x.CodigoTurma).Select(y => y.OrderBy(a => a.CodigoTurma));
+        var idsParaAtualizar = new List<long>();
+
+        if (ehPerfilProfessorInfantil)
+            turmas = VerificaSeExisteTurmaNaoInfantilEmPerfilProfessorInfantil(turmas);
+
+        if (!turmas.Any() && abrangenciaSintetica.Any())
+        {
+            idsParaAtualizar = abrangenciaSintetica.Select(x => x.Id).ToList();
+
+            if (ehPerfilProfessorInfantil && abrangenciaSintetica.Any(a => a.Perfil == perfil))
+            {
+                var idsTurmas = abrangenciaSintetica.Where(a => a.Perfil == perfil).Select(a => a.TurmaId).ToList();
+
+                var dadosTurmas = idsTurmas.Any() ? await mediator.Send(new ObterTurmasPorIdsQuery(idsTurmas.ToArray())) : null;
+
+                var idsParaExcluir = dadosTurmas?.Where(d => d.ModalidadeTipoCalendario != ModalidadeTipoCalendario.Infantil)?.Select(d => d.Id)?.ToList();
+
+                if (idsParaExcluir != null && idsParaExcluir.Any())
+                {
+                    await repositorioAbrangencia.ExcluirAbrangencias(idsParaExcluir);
+
+                    idsParaAtualizar = new List<long>();
+                }
+
+            }
+        }
+    }
+
+    private IEnumerable<AbrangenciaSintetica> RemoverAbrangenciaSinteticaDuplicada(IEnumerable<AbrangenciaSintetica> abrangenciaSintetica)
+    {
+        var retorno = new List<AbrangenciaSintetica>();
+        var abrangencia = abrangenciaSintetica.GroupBy(x => x.CodigoTurma).Select(y => y.OrderBy(a => a.CodigoTurma));
+        foreach (var item in abrangencia)
+        {
+            retorno.Add(item.FirstOrDefault());
+        }
+
+        return retorno;
+    }
+
+    private IEnumerable<Turma> VerificaSeExisteTurmaNaoInfantilEmPerfilProfessorInfantil(IEnumerable<Turma> turmasAbrangenciaEol)
+          => (turmasAbrangenciaEol != null && turmasAbrangenciaEol.Any())
+           ? turmasAbrangenciaEol.Where(t => t.ModalidadeCodigo == Modalidade.EducacaoInfantil)?.ToList()
+           : turmasAbrangenciaEol;
+
     private async Task SincronizarEstruturaInstitucional(EstruturaInstitucionalRetornoEolDTO estrutura)
     {
-        //var dres = estrutura.Dres.Select(x => new Dre() { Abreviacao = x.Abreviacao, CodigoDre = x.Codigo, Nome = x.Nome });
-        //var ues = estrutura.Dres.SelectMany(x => x.Ues.Select(y => new Ue { CodigoUe = y.Codigo, TipoEscola = y.CodTipoEscola, Nome = y.Nome, Dre = new Dre() { CodigoDre = x.Codigo } }));
-        //var turmas = estrutura.Dres.SelectMany(x => x.Ues.SelectMany(y => y.Turmas.Select(z =>
-        //    new Turma
-        //    {
-        //        Ano = z.Ano,
-        //        AnoLetivo = z.AnoLetivo,
-        //        CodigoTurma = z.Codigo,
-        //        //Para turma do tipo 7 (Itinerarios 2A Ano) a modalidade é definida como Médio
-        //        ModalidadeCodigo = z.TipoTurma == Dominio.Enumerados.TipoTurma.Itinerarios2AAno ? Modalidade.Medio : (Modalidade)Convert.ToInt32(z.CodigoModalidade),
-        //        QuantidadeDuracaoAula = z.DuracaoTurno,
-        //        Nome = z.NomeTurma,
-        //        Semestre = z.Semestre,
-        //        TipoTurno = z.TipoTurno,
-        //        Ue = new Ue() { CodigoUe = y.Codigo },
-        //        EnsinoEspecial = z.EnsinoEspecial,
-        //        EtapaEJA = z.EtapaEJA,
-        //        DataInicio = z.DataInicioTurma,
-        //        SerieEnsino = z.SerieEnsino,
-        //        DataFim = z.DataFim,
-        //        Extinta = z.Extinta,
-        //        TipoTurma = z.TipoTurma
-        //    })));
+        var dres = estrutura.Dres.Select(x => new Dre() { Abreviacao = x.Abreviacao, CodigoDre = x.Codigo, Nome = x.Nome });
+        var ues = estrutura.Dres.SelectMany(x => x.Ues.Select(y => new Ue { CodigoUe = y.Codigo, TipoEscola = y.CodTipoEscola, Nome = y.Nome, Dre = new Dre() { CodigoDre = x.Codigo } }));
+        var turmas = estrutura.Dres.SelectMany(x => x.Ues.SelectMany(y => y.Turmas.Select(z =>
+            new Turma
+            {
+                Ano = z.Ano,
+                AnoLetivo = z.AnoLetivo,
+                CodigoTurma = z.Codigo,
+                //Para turma do tipo 7 (Itinerarios 2A Ano) a modalidade é definida como Médio
+                ModalidadeCodigo = z.TipoTurma == Dominio.Enumerados.TipoTurma.Itinerarios2AAno ? Modalidade.Medio : (Modalidade)Convert.ToInt32(z.CodigoModalidade),
+                QuantidadeDuracaoAula = z.DuracaoTurno,
+                Nome = z.NomeTurma,
+                Semestre = z.Semestre,
+                TipoTurno = z.TipoTurno,
+                Ue = new Ue() { CodigoUe = y.Codigo },
+                EnsinoEspecial = z.EnsinoEspecial,
+                EtapaEJA = z.EtapaEJA,
+                DataInicio = z.DataInicioTurma,
+                SerieEnsino = z.SerieEnsino,
+                DataFim = z.DataFim,
+                Extinta = z.Extinta,
+                TipoTurma = z.TipoTurma
+            })));
 
-        //dres = await repositorioDre.SincronizarAsync(dres);
-        //ues = await repositorioUe.SincronizarAsync(ues, dres);
-        //await repositorioTurma.SincronizarAsync(turmas, ues);
+        dres = await repositorioDre.SincronizarAsync(dres);
+        ues = await repositorioUe.SincronizarAsync(ues, dres);
+        await repositorioTurma.SincronizarAsync(turmas, ues);
     }
 }

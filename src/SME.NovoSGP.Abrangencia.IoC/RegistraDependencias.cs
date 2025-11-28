@@ -1,7 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using SME.NovoSGP.Abrangencia.Aplicacao.Interfaces;
+using SME.NovoSGP.Abrangencia.Aplicacao.UseCases;
+using SME.NovoSGP.Abrangencia.Dados.Interfaces;
+using SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using SME.NovoSGP.Abrangencia.Infra.Services;
+using SME.NovoSGP.Abrangencia.IoC.Extensions;
 
 namespace SME.NovoSGP.Abrangencia.IoC;
 
@@ -9,8 +14,8 @@ public static class RegistraDependencias
 {
     public static void Registrar(IServiceCollection services)
     {
-        //services.AdicionarMediatr();
-        //services.AdicionarValidadoresFluentValidation();
+        services.AdicionarMediatr();
+        services.AdicionarValidadoresFluentValidation();
         //services.AddPoliticas();
 
         RegistrarRepositorios(services);
@@ -23,7 +28,14 @@ public static class RegistraDependencias
     private static void RegistrarRepositorios(IServiceCollection services)
     {
         //services.TryAddScoped<IRepositorioCache, RepositorioCache>();
-        //services.TryAddScoped<IRepositorioQuestionario, RepositorioQuestionario>();
+        services.TryAddScoped<IRepositorioAbrangencia, RepositorioAbrangencia>();
+        services.TryAddScoped<IRepositorioDre, RepositorioDre>();
+        services.TryAddScoped<IRepositorioDreConsulta, RepositorioDreConsulta>();
+        services.TryAddScoped<IRepositorioSupervisorEscolaDre, RepositorioSupervisorEscolaDre>();
+        services.TryAddScoped<IRepositorioTurma, RepositorioTurma>();
+        services.TryAddScoped<IRepositorioUe, RepositorioUe>();
+        services.TryAddScoped<IRepositorioUeConsulta, RepositorioUeConsulta>();
+
     }
 
     private static void RegistrarServicos(IServiceCollection services)
@@ -36,6 +48,6 @@ public static class RegistraDependencias
 
     private static void RegistrarCasosDeUso(IServiceCollection services)
     {
-        //services.TryAddScoped<IObterQuestionarioSondagemUseCase, ObterQuestionarioSondagemUseCase>();
+        services.TryAddScoped<IAbrangenciaUseCase, AbrangenciaUseCase>();
     }
 }

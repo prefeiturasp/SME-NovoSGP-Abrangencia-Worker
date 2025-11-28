@@ -6,12 +6,27 @@ using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using System.Text;
 
-namespace SME.NovoSGP.Abrangencia.Dados.Repositorio;
+namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 
 public class RepositorioAbrangencia : RepositorioBaseAbrangencia<AbrangenciaSintetica>, IRepositorioAbrangencia
 {
     public RepositorioAbrangencia(ConnectionStringOptions connectionStrings, IContextoAplicacao contextoAplicacao) : base(connectionStrings, contextoAplicacao)
     {
+    }
+
+    public Task AtualizaAbrangenciaHistorica(IEnumerable<long> paraAtualizar)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task ExcluirAbrangencias(IEnumerable<long> ids)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task InserirAbrangencias(IEnumerable<Dominio.Entidades.Abrangencia> abrangencias, string login)
+    {
+        throw new NotImplementedException();
     }
 
     public async Task<IEnumerable<AbrangenciaSintetica>> ObterAbrangenciaSintetica(string login, Guid perfil, string turmaId = "", bool consideraHistorico = false)

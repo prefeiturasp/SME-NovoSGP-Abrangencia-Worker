@@ -1,4 +1,4 @@
-﻿using SME.NovoSGP.Abrangencia.Infra.Enumerados;
+﻿using SME.NovoSGP.Abrangencia.Dominio.Enumerados;
 
 namespace SME.NovoSGP.Abrangencia.Infra.Dtos;
 

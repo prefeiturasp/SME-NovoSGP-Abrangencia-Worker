@@ -4,7 +4,7 @@ namespace SME.NovoSGP.Abrangencia.Infra.Dtos;
 
 public class AbrangenciaCargoRetornoEolDTO
 {
-    public AbrangenciaEnum Abrangencia { get; set; }
+    public Dominio.Enumerados.Abrangencia Abrangencia { get; set; }
     public List<int> CargosId { get; set; }
     public int CdTipoFuncaoAtividade { get; set; }
     public GruposSGP Grupo { get; set; }
