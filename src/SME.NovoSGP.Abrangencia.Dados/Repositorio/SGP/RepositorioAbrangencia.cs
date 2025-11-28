@@ -3,14 +3,13 @@ using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio.Base;
 using SME.NovoSGP.Abrangencia.Entidades;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
-using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using System.Text;
 
 namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 
-public class RepositorioAbrangencia : RepositorioBaseAbrangencia<AbrangenciaSintetica>, IRepositorioAbrangencia
+public class RepositorioAbrangencia : RepositorioBase<AbrangenciaSintetica>, IRepositorioAbrangencia
 {
-    public RepositorioAbrangencia(ConnectionStringOptions connectionStrings, IContextoAplicacao contextoAplicacao) : base(connectionStrings, contextoAplicacao)
+    public RepositorioAbrangencia(ConnectionStringOptions connectionStrings) : base(connectionStrings.SGP_Postgres)
     {
     }
 
@@ -31,7 +30,7 @@ public class RepositorioAbrangencia : RepositorioBaseAbrangencia<AbrangenciaSint
 
     public async Task<IEnumerable<AbrangenciaSintetica>> ObterAbrangenciaSintetica(string login, Guid perfil, string turmaId = "", bool consideraHistorico = false)
     {
-        using var conn = ObterConexaoAbrangencia();
+        using var conn = ObterConexao();
         try
         {
             var query = new StringBuilder();

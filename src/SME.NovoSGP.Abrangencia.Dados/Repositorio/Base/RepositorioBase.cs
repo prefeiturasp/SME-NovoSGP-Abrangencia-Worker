@@ -1,33 +1,67 @@
-﻿using Dapper;
-using Dommel;
+﻿using Dommel;
 using Npgsql;
-using SME.NovoSGP.Abrangencia.Dados.Interfaces;
-using SME.NovoSGP.Abrangencia.Dominio;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
-using SME.NovoSGP.Abrangencia.Dominio.Extensoes;
-using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
-using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using System.Data;
 
 namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.Base;
 
-public abstract class RepositorioBase
+public abstract class RepositorioBase<T> where T : EntidadeBase
 {
-    private readonly IContextoAplicacao contextoAplicacao;
-
-    protected RepositorioBase(IContextoAplicacao contextoAplicacao)
+    private readonly string connectionStrings;
+    protected RepositorioBase(string connectionStrings)
     {
-        this.contextoAplicacao = contextoAplicacao;
+        this.connectionStrings = connectionStrings ?? throw new ArgumentNullException(nameof(connectionStrings));
     }
 
-    protected string UsuarioLogado => contextoAplicacao.UsuarioLogado;
+    protected virtual IDbConnection ObterConexao()
+    {
+        try
+        {
+            var conexao = new NpgsqlConnection(connectionStrings);
+            conexao.Open();
+            return conexao;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"ERRO CRÍTICO: Falha ao abrir a conexão com o banco de dados. Mensagem: {ex.Message}");
+            throw new InvalidOperationException("Falha ao inicializar ObterConexao: Não foi possível abrir a conexão com o banco de dados.", ex);
+        }
+    }
 
-    protected string UsuarioLogadoNomeCompleto => contextoAplicacao.NomeUsuario;
+    protected virtual IDbConnection ObterConexaoLeitura()
+    {
+        try
+        {
+            var conexao = new NpgsqlConnection(connectionStrings);
+            conexao.Open();
+            return conexao;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"ERRO CRÍTICO: Falha ao abrir a conexão com o banco de dados. Mensagem: {ex.Message}");
+            throw new InvalidOperationException("Falha ao inicializar ObterConexaoLeitura: Não foi possível abrir a conexão com o banco de dados.", ex);
+        }
+    }
 
-    protected string PerfilUsuario => contextoAplicacao.PerfilUsuario;
-
-    protected string UsuarioLogadoRF => contextoAplicacao.ObterVariavel<string>("RF") ?? "0";
-
-    protected string Administrador => contextoAplicacao.Administrador;
-
+    protected virtual async Task<long> SalvarAsync(T entidade)
+    {
+        var conexao = ObterConexao();
+        try
+        {
+            if (entidade.Id > 0)
+            {
+                conexao.Update(entidade);
+            }
+            else
+            {
+                entidade.Id = (long)await conexao.InsertAsync(entidade);
+            }
+            return entidade.Id;
+        }
+        finally
+        {
+            conexao.Close();
+            conexao.Dispose();
+        }
+    }
 }

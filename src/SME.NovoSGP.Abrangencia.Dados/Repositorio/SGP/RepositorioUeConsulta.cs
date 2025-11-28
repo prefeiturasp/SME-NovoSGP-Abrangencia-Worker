@@ -3,19 +3,18 @@ using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio.Base;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
-using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 
 namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 
-public class RepositorioUeConsulta : RepositorioBaseSGP<Ue>, IRepositorioUeConsulta
+public class RepositorioUeConsulta : RepositorioBase<Ue>, IRepositorioUeConsulta
 {
-    public RepositorioUeConsulta(ConnectionStringOptions connectionStrings, IContextoAplicacao contextoAplicacao) : base(connectionStrings, contextoAplicacao)
+    public RepositorioUeConsulta(ConnectionStringOptions connectionStrings) : base(connectionStrings.SGP_Postgres)
     {
     }
 
     public async Task<(List<Ue> Ues, string[] CodigosUesNaoEncontradas)> MaterializarCodigosUe(string[] idUes)
     {
-        using var conn = ObterConexaoSGPConsulta();
+        using var conn = ObterConexaoLeitura();
         try
         {
             string query = @"SELECT id, ue_id, dre_id, nome, tipo_escola, data_atualizacao FROM public.ue where ue_id in (#ids);";

@@ -4,20 +4,19 @@ using SME.NovoSGP.Abrangencia.Dados.Repositorio.Base;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
 using SME.NovoSGP.Abrangencia.Dominio.Excecoes;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
-using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using System.Data;
 
 namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 
-public class RepositorioTurma : RepositorioBaseSGP<Turma>, IRepositorioTurma
+public class RepositorioTurma : RepositorioBase<Turma>, IRepositorioTurma
 {
-    public RepositorioTurma(ConnectionStringOptions connectionStrings, IContextoAplicacao contextoAplicacao) : base(connectionStrings, contextoAplicacao)
+    public RepositorioTurma(ConnectionStringOptions connectionStrings) : base(connectionStrings.SGP_Postgres)
     {
     }
 
     public async Task<IEnumerable<Turma>> MaterializarCodigosTurma(string[] idTurmas, string[] codigosNaoEncontrados)
     {
-        using var conn = ObterConexaoSGPConsulta();
+        using var conn = ObterConexaoLeitura();
         try
         {
             List<Turma> resultado = new List<Turma>();
@@ -46,7 +45,7 @@ public class RepositorioTurma : RepositorioBaseSGP<Turma>, IRepositorioTurma
 
     public async Task<IEnumerable<Turma>> SincronizarAsync(IEnumerable<Turma> entidades, IEnumerable<Ue> ues)
     {
-        using var conn = ObterConexaoSGP();
+        using var conn = ObterConexao();
         try
         {
             List<Turma> resultado = new List<Turma>();
@@ -158,7 +157,7 @@ public class RepositorioTurma : RepositorioBaseSGP<Turma>, IRepositorioTurma
 
     private async Task AtualizarRemoverTurmasExtintasAsync(IEnumerable<Turma> entidades, int anoLetivo)
     {
-        using var conn = ObterConexaoSGP();
+        using var conn = ObterConexao();
         var codigosTurmas = entidades
            .Where(e => !e.Extinta)
            .OrderBy(e => e.CodigoTurma)
@@ -215,7 +214,7 @@ public class RepositorioTurma : RepositorioBaseSGP<Turma>, IRepositorioTurma
 
     private async Task<IEnumerable<string>> ObterCodigosTurmasParaQueryAtualizarTurmasComoHistoricas(int anoLetivo, bool definirTurmasComoHistorica, string listaTurmas, IDbTransaction transacao)
     {
-        using var conn = ObterConexaoSGPConsulta();
+        using var conn = ObterConexaoLeitura();
         try
         {
             var sqlQuery = GerarQueryCodigosTurmasForaLista(anoLetivo, true).Replace("#idsTurmas", listaTurmas);
@@ -249,7 +248,7 @@ public class RepositorioTurma : RepositorioBaseSGP<Turma>, IRepositorioTurma
 
     public async Task<IEnumerable<Turma>> ObterTurmasPorIds(long[] turmasIds)
     {
-        using var conn = ObterConexaoSGPConsulta();
+        using var conn = ObterConexaoLeitura();
         try
         {
             var query = @"select *

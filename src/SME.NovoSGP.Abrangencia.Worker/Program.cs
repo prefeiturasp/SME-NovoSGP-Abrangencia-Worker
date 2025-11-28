@@ -1,5 +1,4 @@
-﻿using Elastic.Apm.Api;
-using Elasticsearch.Net;
+﻿using Elasticsearch.Net;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,18 +11,17 @@ using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using SME.NovoSGP.Abrangencia.Infra.Services;
 using SME.NovoSGP.Abrangencia.IoC;
 using SME.NovoSGP.Abrangencia.Worker;
-using System.Configuration;
 using System.Reflection;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
 builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true);
 
-RegistraDependencias.Registrar(builder.Services);
+ConfigurarConexoes(builder.Services, builder.Configuration);
+RegistraDependencias.Registrar(builder.Services, builder.Configuration);
 ConfigureServices(builder.Services, builder.Configuration);
 ConfigurarRabbitmq(builder.Services, builder.Configuration);
 ConfigurarRabbitmqLog(builder.Services, builder.Configuration);
-ConfigurarConexoes(builder.Services, builder.Configuration);
 
 builder.Services.AddHostedService<WorkerRabbit>();
 
@@ -33,8 +31,6 @@ await host.RunAsync();
 
 static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
 {
-    RegistraDependencias.Registrar(services);
-
     services.Configure<ConnectionStringOptions>(configuration.GetSection(ConnectionStringOptions.Secao));
     services.Configure<RabbitOptions>(configuration.GetSection(RabbitOptions.Secao));
     services.Configure<RabbitLogOptions>(configuration.GetSection(RabbitLogOptions.Secao));

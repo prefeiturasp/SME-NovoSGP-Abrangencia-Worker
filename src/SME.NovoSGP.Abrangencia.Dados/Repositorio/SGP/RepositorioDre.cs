@@ -3,22 +3,21 @@ using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio.Base;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
-using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 
 namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 
-public class RepositorioDre : RepositorioBaseSGP<Dre>, IRepositorioDre
+public class RepositorioDre : RepositorioBase<Dre>, IRepositorioDre
 {
     private const string QuerySincronizacao = @"SELECT id, dre_id, abreviacao, nome, data_atualizacao FROM public.dre where dre_id in (#ids);";
     private const string Update = "UPDATE public.dre SET abreviacao = @abreviacao, nome = @nome, data_atualizacao = @dataAtualizacao WHERE id = @id;";
 
-    public RepositorioDre(ConnectionStringOptions connectionStrings, IContextoAplicacao contextoAplicacao) : base(connectionStrings, contextoAplicacao)
+    public RepositorioDre(ConnectionStringOptions connectionStrings) : base(connectionStrings.SGP_Postgres)
     {
     }
 
     public async Task<IEnumerable<Dre>> SincronizarAsync(IEnumerable<Dre> entidades)
     {
-        using var conn = ObterConexaoSGP();
+        using var conn = ObterConexao();
         try
         {
             List<Dre> resultado = new List<Dre>();

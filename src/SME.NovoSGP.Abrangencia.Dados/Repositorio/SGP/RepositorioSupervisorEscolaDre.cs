@@ -3,20 +3,19 @@ using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio.Base;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
-using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using System.Text;
 
 namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP
 {
-    public class RepositorioSupervisorEscolaDre : RepositorioBaseSGP<SupervisorEscolaDre>, IRepositorioSupervisorEscolaDre
+    public class RepositorioSupervisorEscolaDre : RepositorioBase<SupervisorEscolaDre>, IRepositorioSupervisorEscolaDre
     {
-        public RepositorioSupervisorEscolaDre(ConnectionStringOptions connectionStrings, IContextoAplicacao contextoAplicacao) : base(connectionStrings, contextoAplicacao)
+        public RepositorioSupervisorEscolaDre(ConnectionStringOptions connectionStrings) : base(connectionStrings.SGP_Postgres)
         {
         }
 
         public async Task<IEnumerable<SupervisorEscolaDre>> ObtemPorDreESupervisor(string dreId, string supervisorId, bool excluidos = false)
         {
-            using var conn = ObterConexaoSGPConsulta();
+            using var conn = ObterConexaoLeitura();
             try
             {
                 var query = new StringBuilder();

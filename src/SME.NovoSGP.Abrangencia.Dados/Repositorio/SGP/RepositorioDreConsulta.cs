@@ -3,19 +3,18 @@ using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio.Base;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
-using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 
 namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 
-public class RepositorioDreConsulta : RepositorioBaseSGP<Dre>, IRepositorioDreConsulta
+public class RepositorioDreConsulta : RepositorioBase<Dre>, IRepositorioDreConsulta
 {
-    public RepositorioDreConsulta(ConnectionStringOptions connectionStrings, IContextoAplicacao contextoAplicacao) : base(connectionStrings, contextoAplicacao)
+    public RepositorioDreConsulta(ConnectionStringOptions connectionStrings) : base(connectionStrings.SGP_PostgresConsulta)
     {
     }
 
     public async Task<(IEnumerable<Dre> Dres, string[] CodigosDresNaoEncontrados)> MaterializarCodigosDre(string[] idDres)
     {
-        using var conn = ObterConexaoSGPConsulta();
+        using var conn = ObterConexaoLeitura();
         try
         {
             string query = @"SELECT id, dre_id, abreviacao, nome, data_atualizacao FROM public.dre where dre_id in (#ids);";
