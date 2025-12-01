@@ -153,7 +153,6 @@ public class WorkerRabbit : BackgroundService
 
     private void RegistrarUseCases()
     {
-        comandos.Add(RotasRabbit.IniciarSync, new ComandoRabbit("Inicia o processo de sincronização", typeof(IAbrangenciaSyncUseCase)));
         comandos.Add(RotasRabbit.SincronizarAbrangencia, new ComandoRabbit("Sincriniza as abrangencias", typeof(IAbrangenciaUseCase)));
     }
 

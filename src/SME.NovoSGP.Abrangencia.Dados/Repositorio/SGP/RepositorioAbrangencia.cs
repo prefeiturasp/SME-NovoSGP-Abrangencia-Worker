@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio.Base;
+using SME.NovoSGP.Abrangencia.Dominio.Extensoes;
 using SME.NovoSGP.Abrangencia.Entidades;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using System.Text;
@@ -13,19 +14,84 @@ public class RepositorioAbrangencia : RepositorioBase<AbrangenciaSintetica>, IRe
     {
     }
 
-    public Task AtualizaAbrangenciaHistorica(IEnumerable<long> paraAtualizar)
+    public async Task AtualizaAbrangenciaHistorica(IEnumerable<long> ids)
     {
-        throw new NotImplementedException();
+        using var conn = ObterConexao();
+        try
+        {
+            var dtFimVinculo = DateTimeExtension.HorarioBrasilia().Date;
+
+            string comando = $@" update abrangencia as a
+                                set historico = true, dt_fim_vinculo = '{dtFimVinculo.Year}-{dtFimVinculo.Month}-{dtFimVinculo.Day}'
+                                from abrangencia ab
+                                left join turma t on t.id = ab.turma_id
+                                where a.id = ab.id
+                                and (ab.turma_id is null Or (t.id = ab.turma_id and t.ano_letivo = {dtFimVinculo.Year}))                                    
+                                and a.id in (#ids) ";
+
+            for (int i = 0; i < ids.Count(); i = i + 900)
+            {
+                var iteracao = ids.Skip(i).Take(900);
+                await conn.ExecuteAsync(comando.Replace("#ids", string.Join(",", iteracao.Concat(new long[] { 0 }))));
+            }
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
     }
 
-    public Task ExcluirAbrangencias(IEnumerable<long> ids)
+    public async Task ExcluirAbrangencias(IEnumerable<long> ids)
     {
-        throw new NotImplementedException();
+        using var conn = ObterConexao();
+        try
+        {
+            const string comando = @"delete from public.abrangencia where id in (#ids) and historico = false";
+
+            for (int i = 0; i < ids.Count(); i = i + 900)
+            {
+                var iteracao = ids.Skip(i).Take(900);
+
+                await conn.ExecuteAsync(comando.Replace("#ids", string.Join(",", iteracao.Concat(new long[] { 0 }))));
+            }
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
     }
 
-    public Task InserirAbrangencias(IEnumerable<Dominio.Entidades.Abrangencia> abrangencias, string login)
+    public async Task InserirAbrangencias(IEnumerable<Dominio.Entidades.Abrangencia> abrangencias, string login)
     {
-        throw new NotImplementedException();
+        using var conn = ObterConexao();
+        try
+        {
+            foreach (var item in abrangencias)
+            {
+                const string comando = @"insert into public.abrangencia (usuario_id, dre_id, ue_id, turma_id, perfil, historico)
+                                        values ((select id from usuario where login = @login), @dreId, @ueId, @turmaId, @perfil, @historico)
+                                        RETURNING id"
+                ;
+
+                await conn.ExecuteAsync(comando,
+                    new
+                    {
+                        login,
+                        dreId = item.DreId,
+                        ueId = item.UeId,
+                        turmaId = item.TurmaId,
+                        perfil = item.Perfil,
+                        historico = item.Historico
+                    });
+            }
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
     }
 
     public async Task<IEnumerable<AbrangenciaSintetica>> ObterAbrangenciaSintetica(string login, Guid perfil, string turmaId = "", bool consideraHistorico = false)
