@@ -38,6 +38,7 @@ public static class RegistraDependencias
         services.TryAddScoped<IRepositorioTurma, RepositorioTurma>();
         services.TryAddScoped<IRepositorioUe, RepositorioUe>();
         services.TryAddScoped<IRepositorioUeConsulta, RepositorioUeConsulta>();
+        services.TryAddScoped<IRepositorioUsuario, RepositorioUsuario>();
 
     }
 
@@ -52,6 +53,7 @@ public static class RegistraDependencias
 
     private static void RegistrarCasosDeUso(IServiceCollection services)
     {
+        services.TryAddScoped<IAbrangenciaSyncUseCase, AbrangenciaSyncUseCase>();
         services.TryAddScoped<IAbrangenciaUseCase, AbrangenciaUseCase>();
     }
 }

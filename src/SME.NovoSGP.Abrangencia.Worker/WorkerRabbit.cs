@@ -130,18 +130,6 @@ public class WorkerRabbit : BackgroundService
         argsDlq.Add("x-queue-mode", "lazy");
 
         return argsDlq;
-
-        //var argsDlq = new Dictionary<string, object>();
-
-        //argsDlq.Add("x-queue-mode", "lazy");
-        //if (retryAutomatico)
-        //{
-        //    var ttl = comandos.ContainsKey(fila) ? comandos[fila].TTL : ExchangeRabbit.WorkerAbrangenciaDeadLetterTtl;
-        //    argsDlq.Add("x-message-ttl", ttl);
-        //    argsDlq.Add("x-dead-letter-exchange", exchange);
-        //}
-
-        //return argsDlq;
     }
 
     private ulong GetRetryCount(IReadOnlyBasicProperties properties)
@@ -165,7 +153,8 @@ public class WorkerRabbit : BackgroundService
 
     private void RegistrarUseCases()
     {
-        comandos.Add(RotasRabbit.IniciarSync, new ComandoRabbit("Tratar provas ues total alunos", typeof(IAbrangenciaUseCase)));
+        comandos.Add(RotasRabbit.IniciarSync, new ComandoRabbit("Inicia o processo de sincronização", typeof(IAbrangenciaSyncUseCase)));
+        comandos.Add(RotasRabbit.SincronizarAbrangencia, new ComandoRabbit("Sincriniza as abrangencias", typeof(IAbrangenciaUseCase)));
     }
 
     private async Task InicializaConsumerAsync(IChannel channel, CancellationToken stoppingToken)

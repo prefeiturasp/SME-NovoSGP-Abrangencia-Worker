@@ -25,7 +25,7 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
     private readonly IRepositorioUe repositorioUe;
     private readonly IRepositorioDre repositorioDre;
     private readonly IUnitOfWork unitOfWork;
-    public AbrangenciaUseCase(IMediator mediator, IChannel channel, IRepositorioAbrangencia repositorioAbrangencia, IRepositorioTurma repositorioTurma, IRepositorioUe repositorioUe, IRepositorioDre repositorioDre, IUnitOfWork unitOfWork) : base(mediator, channel)
+    public AbrangenciaUseCase(IMediator mediator, IRepositorioAbrangencia repositorioAbrangencia, IRepositorioTurma repositorioTurma, IRepositorioUe repositorioUe, IRepositorioDre repositorioDre, IUnitOfWork unitOfWork) : base(mediator)
     {
         this.repositorioAbrangencia = repositorioAbrangencia;
         this.repositorioTurma = repositorioTurma;
@@ -36,8 +36,9 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
 
     public async Task<bool> Executar(MensagemRabbit param)
     {
-        string login = "marlon.amcom";
-        Guid perfil = Guid.Parse("5be1e074-37d6-e911-abd6-f81654fe895d");
+        var filtro = param.ObterObjetoMensagem<AbrangenciaUsuarioPerfilDto>();
+        string login = filtro.Login;
+        Guid perfil = filtro.Perfil;
 
         AbrangenciaCompactaVigenteRetornoEOLDTO consultaEol = null;
         AbrangenciaCompactaVigenteRetornoEOLDTO abrangenciaEol = null;
@@ -214,8 +215,6 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
             login);
     }
 
-
-
     private async Task SincronizarAbrangenciaGenerico<T>(
                                                             IEnumerable<AbrangenciaSintetica> abrangenciasAtuais,
                                                             IEnumerable<T> entidades,
@@ -249,7 +248,6 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
 
         await repositorioAbrangencia.ExcluirAbrangencias(perfisGestao);
     }
-
 
     private async Task SincronizarAbragenciaPorTurmas(IEnumerable<AbrangenciaSintetica> abrangenciaSintetica, IEnumerable<Turma> turmas, string login, Guid perfil)
     {

@@ -1,28 +1,37 @@
-# See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
-
-# This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/runtime:8.0 AS base
-USER $APP_UID
+FROM mcr.microsoft.com/dotnet/runtime:9.0 AS base
 WORKDIR /app
 
-
-# This stage is used to build the service project
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["src/SME.NovoSGP.Abrangencia.Worker/SME.NovoSGP.Abrangencia.Worker.csproj", "src/SME.NovoSGP.Abrangencia.Worker/"]
+COPY ["src/SME.NovoSGP.Abrangencia.IoC/SME.NovoSGP.Abrangencia.IoC.csproj", "SME.NovoSGP.Abrangencia.IoC/"]
+COPY ["src/SME.NovoSGP.Abrangencia.Aplicacao/SME.NovoSGP.Abrangencia.Aplicacao.csproj", "SME.NovoSGP.Abrangencia.Aplicacao/"]
+COPY ["src/SME.NovoSGP.Abrangencia.Infra/SME.NovoSGP.Abrangencia.Infra.csproj", "SME.NovoSGP.Abrangencia.Infra/"]
+COPY ["src/SME.NovoSGP.Abrangencia.Dados/SME.NovoSGP.Abrangencia.Dados.csproj", "SME.NovoSGP.Abrangencia.Dados/"]
+COPY ["src/SME.NovoSGP.Abrangencia.Dominio/SME.NovoSGP.Abrangencia.Dominio.csproj", "SME.NovoSGP.Abrangencia.Dominio/"]
 RUN dotnet restore "./src/SME.NovoSGP.Abrangencia.Worker/SME.NovoSGP.Abrangencia.Worker.csproj"
 COPY . .
 WORKDIR "/src/src/SME.NovoSGP.Abrangencia.Worker"
 RUN dotnet build "./SME.NovoSGP.Abrangencia.Worker.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
-# This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./SME.NovoSGP.Abrangencia.Worker.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
-# This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+ENV TZ=America/Sao_Paulo
+
+RUN apt-get update \
+  && apt-get install -yq tzdata locales -y \
+  && dpkg-reconfigure --frontend noninteractive tzdata \ 
+  && locale-gen en_US.UTF-8 \
+  && apt-get install -y --allow-unauthenticated \
+  libc6-dev \
+  libgdiplus \
+  libx11-dev \
+  && rm -rf /var/lib/apt/lists/*
+
 ENTRYPOINT ["dotnet", "SME.NovoSGP.Abrangencia.Worker.dll"]
