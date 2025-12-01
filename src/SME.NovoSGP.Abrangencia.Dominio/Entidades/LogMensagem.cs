@@ -4,7 +4,7 @@ namespace SME.NovoSGP.Abrangencia.Dominio.Entidades;
 
 public class LogMensagem
 {
-    public LogMensagem(string mensagem, LogNivel nivel, string observacao, string rastreamento = null, string excecaoInterna = null, string projeto = "Serap-Prova-Worker")
+    public LogMensagem(string mensagem, LogNivel nivel, string observacao, string rastreamento = null, string excecaoInterna = null, string projeto = "Abrangencia-Worker")
     {
         Mensagem = mensagem;
         Nivel = nivel;
