@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper.FluentMap" Version="2.0.0" />
+	<PackageReference Include="Dapper.FluentMap.Dommel" Version="2.0.0" />
+	<PackageReference Include="Npgsql" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Dominio\SME.NovoSGP.Abrangencia.Dominio.csproj" />
+    <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Infra\SME.NovoSGP.Abrangencia.Infra.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Repositorio\EOL\" />
+    <Folder Include="Repositorio\Abrangencia\" />
+  </ItemGroup>
+
+</Project>

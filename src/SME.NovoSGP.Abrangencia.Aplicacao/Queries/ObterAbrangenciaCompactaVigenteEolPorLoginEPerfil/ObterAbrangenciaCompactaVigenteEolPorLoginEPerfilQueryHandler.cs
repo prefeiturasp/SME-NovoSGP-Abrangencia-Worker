@@ -1,0 +1,35 @@
+﻿using MediatR;
+using Newtonsoft.Json;
+using SME.NovoSGP.Abrangencia.Dominio.Constantes;
+using SME.NovoSGP.Abrangencia.Infra.Dtos;
+using SME.NovoSGP.Abrangencia.Infra.Exceptions;
+
+namespace SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaCompactaVigenteEolPorLoginEPerfil;
+
+public class ObterAbrangenciaCompactaVigenteEolPorLoginEPerfilQueryHandler : IRequestHandler<ObterAbrangenciaCompactaVigenteEolPorLoginEPerfilQuery, AbrangenciaCompactaVigenteRetornoEOLDTO>
+{
+    private readonly IHttpClientFactory httpClientFactory;
+
+    public ObterAbrangenciaCompactaVigenteEolPorLoginEPerfilQueryHandler(IHttpClientFactory httpClientFactory)
+    {
+        this.httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+    }
+
+    public async Task<AbrangenciaCompactaVigenteRetornoEOLDTO> Handle(ObterAbrangenciaCompactaVigenteEolPorLoginEPerfilQuery request, CancellationToken cancellationToken)
+    {
+        var abrangencia = new AbrangenciaCompactaVigenteRetornoEOLDTO();
+
+        var httpClient = httpClientFactory.CreateClient(ServicosEolConstants.SERVICO);
+        var resposta = await httpClient.GetAsync(string.Format(ServicosEolConstants.URL_ABRANGENCIA_COMPACTA_VIGENTE_PERFIL, request.Login, request.Perfil.ToString()));
+        if (resposta.IsSuccessStatusCode)
+        {
+            var json = await resposta.Content.ReadAsStringAsync();
+            abrangencia = JsonConvert.DeserializeObject<AbrangenciaCompactaVigenteRetornoEOLDTO>(json);
+        }
+        else
+        {
+            throw new NegocioException($"Não foi possível localizar abrangência para o login : {request.Login}.");
+        }
+        return abrangencia;
+    }
+}

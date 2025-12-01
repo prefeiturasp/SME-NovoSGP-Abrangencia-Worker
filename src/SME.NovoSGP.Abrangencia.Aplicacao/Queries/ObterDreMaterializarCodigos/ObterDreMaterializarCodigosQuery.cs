@@ -1,0 +1,25 @@
+﻿using FluentValidation;
+using MediatR;
+using SME.NovoSGP.Abrangencia.Dominio.Entidades;
+
+namespace SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterDreMaterializarCodigos;
+
+public class ObterDreMaterializarCodigosQuery : IRequest<(IEnumerable<Dre> Dres, string[] CodigosDresNaoEncontrados)>
+{
+    public string[] IdDres { get; set; }
+
+    public ObterDreMaterializarCodigosQuery(string[] idDres)
+    {
+        IdDres = idDres;
+    }
+}
+
+public class ObterDreMaterializarCodigosQueryValidator : AbstractValidator<ObterDreMaterializarCodigosQuery>
+{
+    public ObterDreMaterializarCodigosQueryValidator()
+    {
+        RuleFor(x => x.IdDres)
+            .NotEmpty()
+            .WithMessage("Íds das Dres devem ser informadas.");
+    }
+}
