@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Nest;
-using RabbitMQ.Client;
 using SME.NovoSGP.Abrangencia.Dados.Interceptors;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
@@ -22,7 +21,7 @@ RegistraDependencias.Registrar(builder.Services, builder.Configuration);
 
 builder.Services.AddSingleton<IRabbitMQSetupService, RabbitMQSetupService>();
 builder.Services.AddSingleton<IRabbitMQMessageProcessor, RabbitMQMessageProcessor>();
-    
+
 ConfigureServices(builder.Services, builder.Configuration);
 ConfigurarRabbitmq(builder.Services, builder.Configuration);
 ConfigurarRabbitmqLog(builder.Services, builder.Configuration);
@@ -31,7 +30,6 @@ builder.Services.AddHostedService<RabbitMQConsumerService>();
 
 IHost host = builder.Build();
 await host.RunAsync();
-
 
 static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
 {
@@ -76,30 +74,8 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
 static void ConfigurarRabbitmq(IServiceCollection services, IConfiguration configuration)
 {
     var rabbitOptions = new RabbitOptions();
-    configuration.GetSection(RabbitLogOptions.Secao).Bind(rabbitOptions, c => c.BindNonPublicProperties = true);
+    configuration.GetSection(RabbitOptions.Secao).Bind(rabbitOptions, c => c.BindNonPublicProperties = true);
     services.AddSingleton(rabbitOptions);
-
-    var factory = new ConnectionFactory
-    {
-        HostName = rabbitOptions.HostName,
-        UserName = rabbitOptions.UserName,
-        Password = rabbitOptions.Password,
-        VirtualHost = rabbitOptions.VirtualHost
-    };
-
-    services.AddSingleton(factory);
-
-    services.AddSingleton<RabbitMQ.Client.IConnection>(provider =>
-    {
-        var factory = provider.GetRequiredService<ConnectionFactory>();
-        return factory.CreateConnectionAsync().Result;
-    });
-
-    services.AddSingleton<IChannel>(provider =>
-    {
-        var connection = provider.GetRequiredService<RabbitMQ.Client.IConnection>();
-        return connection.CreateChannelAsync().Result;
-    });
 }
 
 static void ConfigurarRabbitmqLog(IServiceCollection services, IConfiguration configuration)
@@ -107,17 +83,6 @@ static void ConfigurarRabbitmqLog(IServiceCollection services, IConfiguration co
     var rabbitLogOptions = new RabbitLogOptions();
     configuration.GetSection(RabbitLogOptions.Secao).Bind(rabbitLogOptions, c => c.BindNonPublicProperties = true);
     services.AddSingleton(rabbitLogOptions);
-
-    var factoryLog = new ConnectionFactory
-    {
-        HostName = rabbitLogOptions.HostName,
-        UserName = rabbitLogOptions.UserName,
-        Password = rabbitLogOptions.Password,
-        VirtualHost = rabbitLogOptions.VirtualHost
-    };
-
-    var conexaoRabbitLog = factoryLog.CreateConnectionAsync().Result;
-    IChannel channelLog = conexaoRabbitLog.CreateChannelAsync().Result;
 }
 
 static void ConfigurarConexoes(IServiceCollection services, IConfiguration configuration)
