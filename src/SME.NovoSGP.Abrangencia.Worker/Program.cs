@@ -23,8 +23,6 @@ builder.Services.AddSingleton<IRabbitMQSetupService, RabbitMQSetupService>();
 builder.Services.AddSingleton<IRabbitMQMessageProcessor, RabbitMQMessageProcessor>();
 
 ConfigureServices(builder.Services, builder.Configuration);
-ConfigurarRabbitmq(builder.Services, builder.Configuration);
-ConfigurarRabbitmqLog(builder.Services, builder.Configuration);
 
 builder.Services.AddHostedService<RabbitMQConsumerService>();
 
@@ -69,20 +67,6 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         DapperExtensionMethods.Init(servicoTelemetria);
         return servicoTelemetria;
     });
-}
-
-static void ConfigurarRabbitmq(IServiceCollection services, IConfiguration configuration)
-{
-    var rabbitOptions = new RabbitOptions();
-    configuration.GetSection(RabbitOptions.Secao).Bind(rabbitOptions, c => c.BindNonPublicProperties = true);
-    services.AddSingleton(rabbitOptions);
-}
-
-static void ConfigurarRabbitmqLog(IServiceCollection services, IConfiguration configuration)
-{
-    var rabbitLogOptions = new RabbitLogOptions();
-    configuration.GetSection(RabbitLogOptions.Secao).Bind(rabbitLogOptions, c => c.BindNonPublicProperties = true);
-    services.AddSingleton(rabbitLogOptions);
 }
 
 static void ConfigurarConexoes(IServiceCollection services, IConfiguration configuration)
