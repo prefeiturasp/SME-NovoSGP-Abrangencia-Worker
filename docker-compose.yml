@@ -1,4 +1,3 @@
-version: '3'
 services:
   sme.novosgp.abrangencia.worker:
     image: ${DOCKER_REGISTRY-}smenovosgpabrangenciaworker

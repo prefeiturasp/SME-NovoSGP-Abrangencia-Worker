@@ -76,7 +76,7 @@ public class RabbitMQSetupService : IRabbitMQSetupService
         }
     }
 
-    private Dictionary<string, object> ObterArgumentoDaFila(string fila, Dictionary<string, ComandoRabbit> comandos)
+    private static Dictionary<string, object> ObterArgumentoDaFila(string fila, Dictionary<string, ComandoRabbit> comandos)
     {
         var args = new Dictionary<string, object>
             { { "x-dead-letter-exchange", ExchangeRabbit.WorkerAbrangenciaDeadLetter } };
@@ -87,7 +87,7 @@ public class RabbitMQSetupService : IRabbitMQSetupService
         return args;
     }
 
-    private Dictionary<string, object> ObterArgumentoDaFilaDeadLetter(string fila, Dictionary<string, ComandoRabbit> comandos)
+    private static Dictionary<string, object> ObterArgumentoDaFilaDeadLetter(string fila, Dictionary<string, ComandoRabbit> comandos)
     {
         var argsDlq = new Dictionary<string, object>();
         var ttl = comandos.ContainsKey(fila) ? comandos[fila].Ttl : ExchangeRabbit.WorkerAbrangenciaDeadLetterTtl;
