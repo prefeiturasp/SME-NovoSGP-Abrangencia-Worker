@@ -6,6 +6,7 @@ using SME.NovoSGP.Abrangencia.Aplicacao.UseCases;
 using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
+using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using SME.NovoSGP.Abrangencia.Infra.Services;
 using SME.NovoSGP.Abrangencia.IoC.Extensions;
@@ -20,6 +21,9 @@ public static class RegistraDependencias
         services.AdicionarValidadoresFluentValidation();
         services.TryAddScoped<IUnitOfWork, UnitOfWork>();
         //services.AddPoliticas();
+
+        ConfigurarRabbitmq(services, configuration);
+        ConfigurarRabbitmqLog(services, configuration);
 
         RegistrarRepositorios(services);
         RegistrarServicos(services, configuration);
@@ -55,4 +59,19 @@ public static class RegistraDependencias
     {
         services.TryAddScoped<IAbrangenciaUseCase, AbrangenciaUseCase>();
     }
+
+    private static void ConfigurarRabbitmq(IServiceCollection services, IConfiguration configuration)
+    {
+        var rabbitOptions = new RabbitOptions();
+        configuration.GetSection(RabbitOptions.Secao).Bind(rabbitOptions, c => c.BindNonPublicProperties = true);
+        services.AddSingleton(rabbitOptions);
+    }
+
+    private static void ConfigurarRabbitmqLog(IServiceCollection services, IConfiguration configuration)
+    {
+        var rabbitLogOptions = new RabbitLogOptions();
+        configuration.GetSection(RabbitLogOptions.Secao).Bind(rabbitLogOptions, c => c.BindNonPublicProperties = true);
+        services.AddSingleton(rabbitLogOptions);
+    }
+
 }
