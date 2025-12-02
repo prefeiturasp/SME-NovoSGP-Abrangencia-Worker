@@ -19,11 +19,15 @@ builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly(), optional: 
 
 ConfigurarConexoes(builder.Services, builder.Configuration);
 RegistraDependencias.Registrar(builder.Services, builder.Configuration);
+
+builder.Services.AddSingleton<IRabbitMQSetupService, RabbitMQSetupService>();
+builder.Services.AddSingleton<IRabbitMQMessageProcessor, RabbitMQMessageProcessor>();
+    
 ConfigureServices(builder.Services, builder.Configuration);
 ConfigurarRabbitmq(builder.Services, builder.Configuration);
 ConfigurarRabbitmqLog(builder.Services, builder.Configuration);
 
-builder.Services.AddHostedService<WorkerRabbit>();
+builder.Services.AddHostedService<RabbitMQConsumerService>();
 
 IHost host = builder.Build();
 await host.RunAsync();

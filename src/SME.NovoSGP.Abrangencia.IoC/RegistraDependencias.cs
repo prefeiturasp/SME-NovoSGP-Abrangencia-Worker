@@ -53,7 +53,6 @@ public static class RegistraDependencias
 
     private static void RegistrarCasosDeUso(IServiceCollection services)
     {
-        services.TryAddScoped<IAbrangenciaSyncUseCase, AbrangenciaSyncUseCase>();
         services.TryAddScoped<IAbrangenciaUseCase, AbrangenciaUseCase>();
     }
 }
