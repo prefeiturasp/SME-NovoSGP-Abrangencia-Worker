@@ -1,0 +1,31 @@
+services:
+  sme.novosgp.abrangencia.worker:
+    image: ${DOCKER_REGISTRY-}smenovosgpabrangenciaworker
+    build:
+      context: .
+      dockerfile: src/SME.NovoSGP.Abrangencia.Worker/Dockerfile
+    networks:
+      - sme-network  
+ 
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3.7-management-alpine
+    restart: on-failure
+    hostname: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=bitnami
+    networks:
+      - sme-network
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  sme-network:
+    external:
+      name: sme-network
+    driver: bridge
