@@ -3,5 +3,5 @@
 public class AbrangenciaUsuarioPerfilDto : Dominio.Entidades.EntidadeBase
 {
     public string Login { get; set; }
-    public Guid Perfil { get; set; }
+    public List<Guid> Perfil { get; set; }
 }
