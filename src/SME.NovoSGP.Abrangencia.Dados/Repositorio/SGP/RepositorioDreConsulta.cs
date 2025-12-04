@@ -17,7 +17,7 @@ public class RepositorioDreConsulta : RepositorioBase<Dre>, IRepositorioDreConsu
         using var conn = ObterConexaoLeitura();
         try
         {
-            string query = @"SELECT id, dre_id, abreviacao, nome, data_atualizacao FROM public.dre where dre_id in (#ids);";
+            string query = @"SELECT id, dre_id, abreviacao, nome, data_atualizacao::timestamp AS DataAtualizacao FROM public.dre where dre_id in (#ids);";
             string[] naoEncontradas;
 
             var armazenados = await conn.QueryAsync<Dre>(query.Replace("#ids", string.Join(",", idDres.Select(x => $"'{x}'"))));
