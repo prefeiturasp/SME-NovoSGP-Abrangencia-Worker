@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <DockerfileContext>..\..</DockerfileContext>
+    <UserSecretsId>2e275f39-dd42-432d-bdfe-3f972e6f0b13</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0-preview.5.24306.7" />
+	<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
+	<PackageReference Include="NEST" Version="7.17.5" />
+	<PackageReference Include="RabbitMQ.Client" Version="7.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Aplicacao\SME.NovoSGP.Abrangencia.Aplicacao.csproj" />
+    <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Dados\SME.NovoSGP.Abrangencia.Dados.csproj" />
+    <ProjectReference Include="..\SME.NovoSGP.Abrangencia.Infra\SME.NovoSGP.Abrangencia.Infra.csproj" />
+    <ProjectReference Include="..\SME.NovoSGP.Abrangencia.IoC\SME.NovoSGP.Abrangencia.IoC.csproj" />
+  </ItemGroup>
+
+</Project>
