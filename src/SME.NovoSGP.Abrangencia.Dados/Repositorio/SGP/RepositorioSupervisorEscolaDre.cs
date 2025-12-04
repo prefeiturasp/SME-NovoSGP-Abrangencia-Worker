@@ -20,7 +20,7 @@ namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP
             {
                 var query = new StringBuilder();
 
-                query.AppendLine("select id as AtribuicaoSupervisorId, dre_id, escola_id, supervisor_id, criado_em, criado_por, alterado_em, alterado_por, criado_rf, alterado_rf, excluido as AtribuicaoExcluida, tipo as TipoAtribuicao ");
+                query.AppendLine("select id as AtribuicaoSupervisorId, dre_id DreId, escola_id EscolaId, supervisor_id SupervisorId, criado_em, criado_por, alterado_em, alterado_por, criado_rf, alterado_rf, excluido as AtribuicaoExcluida, tipo as TipoAtribuicao ");
                 query.AppendLine("from supervisor_escola_dre sed");
                 query.AppendLine("where 1 = 1");
 

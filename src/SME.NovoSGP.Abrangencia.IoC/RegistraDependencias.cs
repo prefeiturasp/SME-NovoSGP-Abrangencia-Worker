@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using SME.NovoSGP.Abrangencia.Aplicacao.Interfaces;
 using SME.NovoSGP.Abrangencia.Aplicacao.UseCases;
 using SME.NovoSGP.Abrangencia.Dados.Interfaces;
+using SME.NovoSGP.Abrangencia.Dados.Mapeamentos;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
@@ -29,7 +30,7 @@ public static class RegistraDependencias
         RegistrarServicos(services, configuration);
         RegistrarCasosDeUso(services);
         //RegistrarContextos(services);
-        //RegistraMapeamentos.Registrar();
+        RegistrarMapeamentos.Registrar();
     }
 
     private static void RegistrarRepositorios(IServiceCollection services)
