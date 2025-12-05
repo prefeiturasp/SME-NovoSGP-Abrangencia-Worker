@@ -103,14 +103,14 @@ public class RepositorioAbrangencia : RepositorioBase<AbrangenciaSintetica>, IRe
 
             query.AppendLine("select");
             query.AppendLine("id,");
-            query.AppendLine("usuario_id,");
+            query.AppendLine("usuario_id UsuarioId,");
             query.AppendLine("login,");
-            query.AppendLine("dre_id,");
-            query.AppendLine("codigo_dre,");
-            query.AppendLine("ue_id,");
-            query.AppendLine("codigo_ue,");
-            query.AppendLine("turma_id,");
-            query.AppendLine("codigo_turma,");
+            query.AppendLine("dre_id DreId,");
+            query.AppendLine("codigo_dre CodigoDre,");
+            query.AppendLine("ue_id UeId,");
+            query.AppendLine("codigo_ue CodigoUe,");
+            query.AppendLine("turma_id TurmaId,");
+            query.AppendLine("codigo_turma CodigoTurma,");
             query.AppendLine("perfil,");
             query.AppendLine("historico");
             query.AppendLine("from");

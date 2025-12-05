@@ -9,7 +9,10 @@ public static class RegistrarMapeamentos
     {
         FluentMapper.Initialize(config =>
         {
-
+            config.AddMap(new DreMap());
+            config.AddMap(new UeMap());
+            config.AddMap(new TurmaMap());
+            config.AddMap(new AbrangenciaMap());
             config.ForDommel();
         });
     }

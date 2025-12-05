@@ -158,35 +158,23 @@ public class ServicoTelemetria : IServicoTelemetria
 
     public async Task RegistrarAsync(Func<Task> acao, string acaoNome, string telemetriaNome, string telemetriaValor)
     {
-        DateTime inicioOperacao = default;
-        Stopwatch temporizador = default;
-
-        if (telemetriaOptions.ApplicationInsights)
-        {
-            inicioOperacao = DateTime.UtcNow;
-            temporizador = Stopwatch.StartNew();
-        }
-
         if (telemetriaOptions.Apm)
         {
-            var temporizadorApm = Stopwatch.StartNew();
-            await acao();
-            temporizadorApm.Stop();
+            var transactionElk = Agent.Tracer.CurrentTransaction;
 
-            Agent.Tracer.CurrentTransaction.CaptureSpan(telemetriaNome, acaoNome, (span) =>
+            if (transactionElk != null)
             {
-                span.SetLabel(telemetriaNome, telemetriaValor);
-                span.Duration = temporizadorApm.Elapsed.TotalMilliseconds;
-            });
+                await transactionElk.CaptureSpan(telemetriaNome, acaoNome, async (span) =>
+                {
+                    span.SetLabel(telemetriaNome, telemetriaValor);
+                    await acao();
+                });
+            }
+            else
+                await acao();
         }
         else
             await acao();
-
-
-        if (telemetriaOptions.ApplicationInsights && temporizador != null)
-        {
-            temporizador.Stop();
-        }
     }
 
     public class ServicoTelemetriaTransacao

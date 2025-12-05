@@ -36,9 +36,19 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
 
     public async Task<bool> Executar(MensagemRabbit param)
     {
-        var filtro = param.ObterObjetoMensagem<AbrangenciaUsuarioPerfilDto>();
-        string login = filtro.Login;
-        Guid perfil = filtro.Perfil;
+        var usuario = param.ObterObjetoMensagem<AbrangenciaUsuarioPerfilDto>();
+
+        foreach (var perfil in usuario.Perfil)
+        {
+            await ProcessarAbrangencia(usuario.Login, perfil);
+        }
+
+        return true;
+    }
+
+    private async Task<bool> ProcessarAbrangencia(string login, Guid perfil)
+    {
+        if (string.IsNullOrWhiteSpace(login)) return true;
 
         AbrangenciaCompactaVigenteRetornoEOLDTO consultaEol = null;
         AbrangenciaCompactaVigenteRetornoEOLDTO abrangenciaEol = null;
@@ -68,7 +78,7 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
             // Enquanto o EOl consulta, tentamos ganhar tempo obtendo a consulta sintetica
             var consultaAbrangenciaSintetica = repositorioAbrangencia.ObterAbrangenciaSintetica(login, perfil, string.Empty);
 
-            if (abrangenciaEol != null)
+            if (abrangenciaEol == null)
                 abrangenciaEol = consultaEol;
             var abrangenciaSintetica = await consultaAbrangenciaSintetica;
 
