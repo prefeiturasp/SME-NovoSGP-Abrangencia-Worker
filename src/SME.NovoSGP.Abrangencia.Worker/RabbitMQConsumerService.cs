@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using SME.NovoSGP.Abrangencia.Aplicacao.Interfaces;
-using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using SME.NovoSGP.Abrangencia.Infra.Extensions;
 using SME.NovoSGP.Abrangencia.Infra.Fila;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
