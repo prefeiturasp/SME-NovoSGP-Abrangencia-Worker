@@ -69,21 +69,21 @@ public class RabbitMQMessageProcessor : IRabbitMQMessageProcessor
         }
         catch (NegocioException nex)
         {
-            _logger.LogError("Error: {0}", nex.Message);
+            _logger.LogError("Error: {0}", nex);
             await channel.BasicAckAsync(ea.DeliveryTag, false);
             RegistrarLog(ea, mensagemRabbit, nex, LogNivel.Negocio, $"Erros: {nex.Message}");
             _servicoTelemetria.RegistrarExcecao(transacao, nex);
         }
         catch (ValidacaoException vex)
         {
-            _logger.LogError("Error: {0}", vex.Message);
+            _logger.LogError("Error: {0}", vex);
             await channel.BasicAckAsync(ea.DeliveryTag, false);
             RegistrarLog(ea, mensagemRabbit, vex, LogNivel.Negocio, $"Erros: {JsonSerializer.Serialize(vex.Mensagens())}");
             _servicoTelemetria.RegistrarExcecao(transacao, vex);
         }
         catch (Exception ex)
         {
-            _logger.LogError("Error: {0}", ex.Message);
+            _logger.LogError("Error: {0}", ex);
             _servicoTelemetria.RegistrarExcecao(transacao, ex);
             var rejeicoes = GetRetryCount(ea.BasicProperties);
 
