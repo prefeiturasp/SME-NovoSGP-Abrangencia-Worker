@@ -1,7 +1,5 @@
-﻿using Elastic.Apm;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
@@ -11,6 +9,7 @@ using SME.NovoSGP.Abrangencia.Infra.Extensions;
 using SME.NovoSGP.Abrangencia.Infra.Fila;
 using SME.NovoSGP.Abrangencia.Infra.Interfaces;
 using System.Text;
+using System.Text.Json;
 
 namespace SME.NovoSGP.Abrangencia.Worker;
 
@@ -21,7 +20,6 @@ public class RabbitMQMessageProcessor : IRabbitMQMessageProcessor
     private readonly IServicoLog _servicoLog;
     private readonly IServicoMensageria _servicoMensageria;
     private readonly ILogger<RabbitMQMessageProcessor> _logger;
-    private readonly string apmTransactionType = "WorkerRabbitAbrangencia";
 
     public RabbitMQMessageProcessor(
         IServiceScopeFactory serviceScopeFactory,
@@ -49,8 +47,7 @@ public class RabbitMQMessageProcessor : IRabbitMQMessageProcessor
             return;
         }
 
-        var transacao =  Agent.Tracer.StartTransaction(rota, apmTransactionType);
-        //var transacao = _servicoTelemetria.IniciarTransacao(rota);
+        var transacao = _servicoTelemetria.IniciarTransacao(rota);
         var mensagemRabbit = mensagem.ConverterObjectStringPraObjeto<MensagemRabbit>();
         var comandoRabbit = comandos[rota];
 
@@ -69,52 +66,48 @@ public class RabbitMQMessageProcessor : IRabbitMQMessageProcessor
                 rota);
 
             await channel.BasicAckAsync(ea.DeliveryTag, false);
-            //await servicoMensageriaMetricas.Concluido(rota);
         }
         catch (NegocioException nex)
         {
-            transacao?.CaptureException(nex);
-
+            _logger.LogError("Error: {0}", nex.Message);
             await channel.BasicAckAsync(ea.DeliveryTag, false);
-            //await servicoMensageriaMetricas.Concluido(rota);
-
-            await RegistrarErroTratamentoMensagem(ea, mensagemRabbit, nex, LogNivel.Negocio, $"Erros: {nex.Message}");
+            RegistrarLog(ea, mensagemRabbit, nex, LogNivel.Negocio, $"Erros: {nex.Message}");
+            _servicoTelemetria.RegistrarExcecao(transacao, nex);
         }
         catch (ValidacaoException vex)
         {
-            transacao?.CaptureException(vex);
-
-                 channel.BasicAckAsync(ea.DeliveryTag, false);
-            //await servicoMensageriaMetricas.Concluido(rota);
-
-            await RegistrarErroTratamentoMensagem(ea, mensagemRabbit, vex, LogNivel.Negocio, $"Erros: {JsonConvert.SerializeObject(vex.Mensagens())}");
+            _logger.LogError("Error: {0}", vex.Message);
+            await channel.BasicAckAsync(ea.DeliveryTag, false);
+            RegistrarLog(ea, mensagemRabbit, vex, LogNivel.Negocio, $"Erros: {JsonSerializer.Serialize(vex.Mensagens())}");
+            _servicoTelemetria.RegistrarExcecao(transacao, vex);
         }
         catch (Exception ex)
         {
-            transacao?.CaptureException(ex);
-
+            _logger.LogError("Error: {0}", ex.Message);
+            _servicoTelemetria.RegistrarExcecao(transacao, ex);
             var rejeicoes = GetRetryCount(ea.BasicProperties);
+
             if (++rejeicoes >= comandoRabbit.QuantidadeReprocessamentoDeadLetter)
             {
                 await channel.BasicAckAsync(ea.DeliveryTag, false);
 
-                var filaLimbo = $"{ea.RoutingKey}.limbo";
-                await _servicoMensageria.Publicar(mensagemRabbit, filaLimbo, ExchangeRabbit.WorkerAbrangenciaDeadLetter, "PublicarDeadLetter");
-            }
-            else await channel.BasicRejectAsync(ea.DeliveryTag, false);
+                var filaFinal = $"{ea.RoutingKey}.deadletter.final";
 
-            //await servicoMensageriaMetricas.Erro(rota);
-            await RegistrarErroTratamentoMensagem(ea, mensagemRabbit, ex, LogNivel.Critico, $"Erros: {ex.Message}");
+                await _servicoMensageria.Publicar(mensagemRabbit, filaFinal,
+                    ExchangeRabbit.WorkerAbrangenciaDeadLetter,
+                    "PublicarDeadLetter");
+            }
+            else
+            {
+                await channel.BasicRejectAsync(ea.DeliveryTag, false);
+            }
+
+            RegistrarLog(ea, mensagemRabbit, ex, LogNivel.Critico, $"Erros: {ex.Message}");
         }
         finally
         {
-            transacao?.End();
+            _servicoTelemetria.FinalizarTransacao(transacao);
         }
-    }
-
-    protected virtual Task RegistrarErroTratamentoMensagem(BasicDeliverEventArgs ea, MensagemRabbit mensagemRabbit, Exception ex, LogNivel logNivel, string observacao)
-    {
-        return Task.CompletedTask;
     }
 
     private ulong GetRetryCount(IReadOnlyBasicProperties properties)
@@ -140,12 +133,10 @@ public class RabbitMQMessageProcessor : IRabbitMQMessageProcessor
     {
         var mensagem = $"Worker Abrangencia: Rota -> {ea.RoutingKey}  Cod Correl -> {mensagemRabbit.CodigoCorrelacao.ToString()[..3]}";
 
-        // Cria a LogMensagem, mas não a passa diretamente para o servicoLog.Registrar
         var logMensagem = new LogMensagem(mensagem, logNivel, observacao, ex?.StackTrace, ex?.InnerException?.Message);
 
-        // Cria uma exceção que vai ser passada para o serviço de log (se o servicoLog requer uma Exception)
         var exceptionToLog = new Exception(logMensagem.Mensagem, ex);
 
-        _servicoLog.Registrar(exceptionToLog);  // Registra a exceção com os dados da LogMensagem
+        _servicoLog.Registrar(exceptionToLog);
     }
 }
