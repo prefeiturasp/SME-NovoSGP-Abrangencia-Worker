@@ -8,7 +8,7 @@ namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 
 public class RepositorioDreConsulta : RepositorioBase<Dre>, IRepositorioDreConsulta
 {
-    public RepositorioDreConsulta(ConnectionStringOptions connectionStrings) : base(connectionStrings.SGP_PostgresConsulta)
+    public RepositorioDreConsulta(ConnectionStringOptions connectionStrings) : base(connectionStrings.SGP_PostgresConsultas)
     {
     }
 
