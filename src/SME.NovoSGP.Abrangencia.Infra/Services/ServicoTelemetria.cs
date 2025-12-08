@@ -22,9 +22,6 @@ public class ServicoTelemetria : IServicoTelemetria
         if (telemetriaOptions.Apm)
             transacao.TransacaoApm = Agent.Tracer.StartTransaction(rota, "WorkerRabbitNovoSGPAbrangencia");
 
-        if (!telemetriaOptions.ApplicationInsights)
-            return transacao;
-
         transacao.InicioOperacao = DateTime.UtcNow;
         transacao.Temporizador = Stopwatch.StartNew();
         return transacao;
@@ -45,41 +42,22 @@ public class ServicoTelemetria : IServicoTelemetria
     public async Task<dynamic> RegistrarComRetornoAsync<T>(Func<Task<object>> acao, string acaoNome,
         string telemetriaNome, string telemetriaValor, string parametros)
     {
-        dynamic result;
-
-        DateTime inicioOperacao = default;
-        Stopwatch temporizador = default;
-
-        if (telemetriaOptions.ApplicationInsights)
-        {
-            inicioOperacao = DateTime.UtcNow;
-            temporizador = Stopwatch.StartNew();
-        }
-
+        dynamic result = default;
         if (telemetriaOptions.Apm)
         {
-            var temporizadorApm = Stopwatch.StartNew();
-            result = await acao();
-            temporizadorApm.Stop();
+            var transactionElk = Agent.Tracer.CurrentTransaction;
 
-            Agent.Tracer.CurrentTransaction.CaptureSpan(telemetriaNome, acaoNome, span =>
+            await transactionElk.CaptureSpan(telemetriaNome, acaoNome, async (span) =>
             {
                 span.SetLabel(telemetriaNome, telemetriaValor);
-
-                if (!string.IsNullOrEmpty(parametros))
-                    span.SetLabel("Parametros", parametros);
-
-                span.Duration = temporizadorApm.Elapsed.TotalMilliseconds;
+                span.SetLabel("Parametros", parametros);
+                result = (await acao()) as dynamic;
             });
         }
         else
-            result = await acao();
-
-        if (!telemetriaOptions.ApplicationInsights || temporizador == null)
-            return result;
-
-        temporizador.Stop();
-
+        {
+            result = await acao() as dynamic;
+        }
         return result;
     }
 
@@ -90,103 +68,61 @@ public class ServicoTelemetria : IServicoTelemetria
 
     public dynamic RegistrarComRetorno<T>(Func<object> acao, string acaoNome, string telemetriaNome, string telemetriaValor)
     {
-        dynamic result;
-
-        DateTime inicioOperacao = default;
-        Stopwatch temporizador = default;
-
-        if (telemetriaOptions.ApplicationInsights)
-        {
-            inicioOperacao = DateTime.UtcNow;
-            temporizador = Stopwatch.StartNew();
-        }
-
+        dynamic result = default;
         if (telemetriaOptions.Apm)
         {
-            var temporizadorApm = Stopwatch.StartNew();
-            result = acao();
-            temporizadorApm.Stop();
+            var transactionElk = Agent.Tracer.CurrentTransaction;
 
-            Agent.Tracer.CurrentTransaction.CaptureSpan(telemetriaNome, acaoNome, (span) =>
+            transactionElk.CaptureSpan(telemetriaNome, acaoNome, (span) =>
             {
                 span.SetLabel(telemetriaNome, telemetriaValor);
-                span.Duration = temporizadorApm.Elapsed.TotalMilliseconds;
+                result = acao();
             });
         }
         else
+        {
             result = acao();
-
-        if (!telemetriaOptions.ApplicationInsights || temporizador == null)
-            return result;
-
-        temporizador.Stop();
-
+        }
         return result;
     }
 
     public void Registrar(Action acao, string acaoNome, string telemetriaNome, string telemetriaValor)
     {
-        DateTime inicioOperacao = default;
-        Stopwatch temporizador = default;
-
-        if (telemetriaOptions.ApplicationInsights)
-        {
-            inicioOperacao = DateTime.UtcNow;
-            temporizador = Stopwatch.StartNew();
-        }
-
         if (telemetriaOptions.Apm)
         {
-            var temporizadorApm = Stopwatch.StartNew();
-            acao();
-            temporizadorApm.Stop();
+            var transactionElk = Agent.Tracer.CurrentTransaction;
 
-            Agent.Tracer.CurrentTransaction.CaptureSpan(telemetriaNome, acaoNome, (span) =>
+            transactionElk.CaptureSpan(telemetriaNome, acaoNome, (span) =>
             {
                 span.SetLabel(telemetriaNome, telemetriaValor);
-                span.Duration = temporizadorApm.Elapsed.TotalMilliseconds;
+                acao();
             });
         }
         else
+        {
             acao();
-
-        if (!telemetriaOptions.ApplicationInsights || temporizador == null)
-            return;
-
-        temporizador.Stop();
+        }
     }
 
     public async Task RegistrarAsync(Func<Task> acao, string acaoNome, string telemetriaNome, string telemetriaValor)
     {
-        DateTime inicioOperacao = default;
-        Stopwatch temporizador = default;
-
-        if (telemetriaOptions.ApplicationInsights)
-        {
-            inicioOperacao = DateTime.UtcNow;
-            temporizador = Stopwatch.StartNew();
-        }
-
         if (telemetriaOptions.Apm)
         {
-            var temporizadorApm = Stopwatch.StartNew();
-            await acao();
-            temporizadorApm.Stop();
+            var transactionElk = Agent.Tracer.CurrentTransaction;
 
-            Agent.Tracer.CurrentTransaction.CaptureSpan(telemetriaNome, acaoNome, (span) =>
+            if (transactionElk != null)
             {
-                span.SetLabel(telemetriaNome, telemetriaValor);
-                span.Duration = temporizadorApm.Elapsed.TotalMilliseconds;
-            });
+                await transactionElk.CaptureSpan(telemetriaNome, acaoNome, async (span) =>
+                {
+                    span.SetLabel(telemetriaNome, telemetriaValor);
+                    await acao();
+                });
+            }
+            else
+                await acao();
         }
         else
             await acao();
-
-
-        if (telemetriaOptions.ApplicationInsights && temporizador != null)
-        {
-            temporizador.Stop();
-        }
     }
 
     public class ServicoTelemetriaTransacao
