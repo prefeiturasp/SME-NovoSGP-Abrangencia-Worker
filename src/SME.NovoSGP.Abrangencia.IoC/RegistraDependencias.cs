@@ -44,6 +44,7 @@ public static class RegistraDependencias
         services.TryAddScoped<IRepositorioUe, RepositorioUe>();
         services.TryAddScoped<IRepositorioUeConsulta, RepositorioUeConsulta>();
         services.TryAddScoped<IRepositorioUsuario, RepositorioUsuario>();
+        services.TryAddScoped<IRepositorioCadastroAcessoABAEConsulta, RepositorioCadastroAcessoABAEConsulta>();
 
     }
 
