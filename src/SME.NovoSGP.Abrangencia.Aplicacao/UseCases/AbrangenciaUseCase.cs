@@ -1,5 +1,4 @@
 ﻿using MediatR;
-using RabbitMQ.Client;
 using SME.NovoSGP.Abrangencia.Aplicacao.Interfaces;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaCompactaVigenteEolPorLoginEPerfil;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaEolSupervisor;
@@ -11,7 +10,6 @@ using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterTurmasPorIds;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterUeMaterializarCodigos;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterUePorId;
 using SME.NovoSGP.Abrangencia.Dados.Interfaces;
-using SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP;
 using SME.NovoSGP.Abrangencia.Dominio.Constantes;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
 using SME.NovoSGP.Abrangencia.Dominio.Enumerados;
@@ -323,6 +321,40 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
 
             }
         }
+
+        var novas = turmas.Where(x => !abrangenciaSintetica.Select(y => y.TurmaId).Contains(x.Id));
+
+        var paraAtualizar = abrangenciaSintetica.GroupBy(x => x.CodigoTurma).SelectMany(y => y.OrderBy(a => a.CodigoTurma).Take(1));
+
+        var listaAbrangenciaSintetica = new List<AbrangenciaSintetica>();
+        var listaParaAtualizar = new List<AbrangenciaSintetica>();
+
+        listaAbrangenciaSintetica.AddRange(abrangenciaSintetica.ToList());
+        listaParaAtualizar.AddRange(paraAtualizar.ToList());
+        var registrosDuplicados = listaAbrangenciaSintetica.Except(listaParaAtualizar);
+
+        if (registrosDuplicados.Any())
+            idsParaAtualizar = registrosDuplicados.Select(x => x.Id).ToList();
+
+        if (abrangenciaSintetica.Any() &&
+            turmas.Any() &&
+            abrangenciaSintetica.Count() != turmas.Count())
+            idsParaAtualizar.AddRange(VerificaTurmasAbrangenciaAtualParaHistorica(abrangenciaSintetica, turmas));
+
+        await repositorioAbrangencia.InserirAbrangencias(novas.Select(x => new Dominio.Entidades.Abrangencia() { Perfil = perfil, TurmaId = x.Id }), login);
+
+        await repositorioAbrangencia.AtualizaAbrangenciaHistorica(idsParaAtualizar);
+    }
+
+    public IEnumerable<long> VerificaTurmasAbrangenciaAtualParaHistorica(IEnumerable<AbrangenciaSintetica> abrangenciaAtual, IEnumerable<Turma> turmasAbrangenciaEol)
+    {
+        var turmasNaAbrangenciaAtualExistentesEol = from ta in turmasAbrangenciaEol
+                                                    join aa in abrangenciaAtual
+                                                    on ta.Id equals aa.TurmaId into turmasIguais
+                                                    from tI in turmasIguais.DefaultIfEmpty()
+                                                    select tI;
+
+        return abrangenciaAtual.Except(turmasNaAbrangenciaAtualExistentesEol).Select(t => t.Id);
     }
 
     private IEnumerable<AbrangenciaSintetica> RemoverAbrangenciaSinteticaDuplicada(IEnumerable<AbrangenciaSintetica> abrangenciaSintetica)
