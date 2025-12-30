@@ -1,13 +1,14 @@
 ﻿using MediatR;
-using RabbitMQ.Client;
 using SME.NovoSGP.Abrangencia.Aplicacao.Interfaces;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaCompactaVigenteEolPorLoginEPerfil;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaEolSupervisor;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaParaSupervisor;
+using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterCadastroAcessoABAEPorCpf;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterDreMaterializarCodigos;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterEstruturaInstuticionalVigentePorTurma;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterTurmasPorIds;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterUeMaterializarCodigos;
+using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterUePorId;
 using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dominio.Constantes;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
@@ -24,14 +25,17 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
     private readonly IRepositorioTurma repositorioTurma;
     private readonly IRepositorioUe repositorioUe;
     private readonly IRepositorioDre repositorioDre;
+    private readonly IRepositorioUsuario repositorioUsuario;
     private readonly IUnitOfWork unitOfWork;
-    public AbrangenciaUseCase(IMediator mediator, IRepositorioAbrangencia repositorioAbrangencia, IRepositorioTurma repositorioTurma, IRepositorioUe repositorioUe, IRepositorioDre repositorioDre, IUnitOfWork unitOfWork) : base(mediator)
+    public AbrangenciaUseCase(IMediator mediator, IRepositorioAbrangencia repositorioAbrangencia, IRepositorioTurma repositorioTurma, IRepositorioUe repositorioUe, IRepositorioDre repositorioDre, 
+        IUnitOfWork unitOfWork, IRepositorioUsuario repositorioUsuario) : base(mediator)
     {
         this.repositorioAbrangencia = repositorioAbrangencia;
         this.repositorioTurma = repositorioTurma;
         this.repositorioUe = repositorioUe;
         this.repositorioDre = repositorioDre;
         this.unitOfWork = unitOfWork;
+        this.repositorioUsuario = repositorioUsuario;
     }
 
     public async Task<bool> Executar(MensagemRabbit param)
@@ -55,6 +59,7 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
 
         var ehSupervisor = perfil == Perfis.PERFIL_SUPERVISOR;
         var ehProfessorCJ = perfil == Perfis.PERFIL_CJ || perfil == Perfis.PERFIL_CJ_INFANTIL;
+        var ehABAE = perfil == Perfis.PERFIL_ABAE;
 
         if (ehSupervisor)
         {
@@ -70,6 +75,32 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
         }
         else if (ehProfessorCJ)
             return true;
+        else if (ehABAE)
+        {
+            var usuario = await repositorioUsuario.ObterPorCodigoRfLogin(null!, login);
+
+            if (usuario is not null)
+            {
+                //se for usuário ABAE, o CPF e o login serão os mesmos
+                var cadastroABAE = await mediator.Send(new ObterCadastroAcessoABAEPorCpfQuery(login));
+
+                if (cadastroABAE?.UeId is not null)
+                {
+                    // Obter informações da UE e DRE baseadas no cadastro ABAE
+                    var ue = await mediator.Send(new ObterUePorIdQuery(cadastroABAE.UeId));
+
+                    if (ue?.Dre is not null)
+                    {
+                        abrangenciaEol = new AbrangenciaCompactaVigenteRetornoEOLDTO()
+                        {
+                            Abrangencia = new AbrangenciaCargoRetornoEolDTO { Abrangencia = Dominio.Enumerados.Abrangencia.UE },
+                            IdDres = new[] { ue.Dre.CodigoDre },
+                            IdUes = new[] { ue.CodigoUe }
+                        };
+                    }
+                }
+            }
+        }
         else
             consultaEol = await mediator.Send(new ObterAbrangenciaCompactaVigenteEolPorLoginEPerfilQuery(login, perfil));
 
@@ -290,6 +321,40 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
 
             }
         }
+
+        var novas = turmas.Where(x => !abrangenciaSintetica.Select(y => y.TurmaId).Contains(x.Id));
+
+        var paraAtualizar = abrangenciaSintetica.GroupBy(x => x.CodigoTurma).SelectMany(y => y.OrderBy(a => a.CodigoTurma).Take(1));
+
+        var listaAbrangenciaSintetica = new List<AbrangenciaSintetica>();
+        var listaParaAtualizar = new List<AbrangenciaSintetica>();
+
+        listaAbrangenciaSintetica.AddRange(abrangenciaSintetica.ToList());
+        listaParaAtualizar.AddRange(paraAtualizar.ToList());
+        var registrosDuplicados = listaAbrangenciaSintetica.Except(listaParaAtualizar);
+
+        if (registrosDuplicados.Any())
+            idsParaAtualizar = registrosDuplicados.Select(x => x.Id).ToList();
+
+        if (abrangenciaSintetica.Any() &&
+            turmas.Any() &&
+            abrangenciaSintetica.Count() != turmas.Count())
+            idsParaAtualizar.AddRange(VerificaTurmasAbrangenciaAtualParaHistorica(abrangenciaSintetica, turmas));
+
+        await repositorioAbrangencia.InserirAbrangencias(novas.Select(x => new Dominio.Entidades.Abrangencia() { Perfil = perfil, TurmaId = x.Id }), login);
+
+        await repositorioAbrangencia.AtualizaAbrangenciaHistorica(idsParaAtualizar);
+    }
+
+    public IEnumerable<long> VerificaTurmasAbrangenciaAtualParaHistorica(IEnumerable<AbrangenciaSintetica> abrangenciaAtual, IEnumerable<Turma> turmasAbrangenciaEol)
+    {
+        var turmasNaAbrangenciaAtualExistentesEol = from ta in turmasAbrangenciaEol
+                                                    join aa in abrangenciaAtual
+                                                    on ta.Id equals aa.TurmaId into turmasIguais
+                                                    from tI in turmasIguais.DefaultIfEmpty()
+                                                    select tI;
+
+        return abrangenciaAtual.Except(turmasNaAbrangenciaAtualExistentesEol).Select(t => t.Id);
     }
 
     private IEnumerable<AbrangenciaSintetica> RemoverAbrangenciaSinteticaDuplicada(IEnumerable<AbrangenciaSintetica> abrangenciaSintetica)

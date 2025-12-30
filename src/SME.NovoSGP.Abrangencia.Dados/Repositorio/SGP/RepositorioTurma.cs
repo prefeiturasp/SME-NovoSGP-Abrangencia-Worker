@@ -353,7 +353,7 @@ public class RepositorioTurma : RepositorioBase<Turma>, IRepositorioTurma
                         nome,
                         ano,
                         ano_letivo,
-                        modalidade_codigo,
+                        modalidade_codigo AS ModalidadeCodigo,
                         semestre,
                         qt_duracao_aula,
                         tipo_turno,
