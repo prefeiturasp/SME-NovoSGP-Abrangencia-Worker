@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.Extensions.Logging;
 using SME.NovoSGP.Abrangencia.Aplicacao.Interfaces;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaCompactaVigenteEolPorLoginEPerfil;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaEolSupervisor;
@@ -6,6 +7,7 @@ using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaParaSupervisor;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterCadastroAcessoABAEPorCpf;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterDreMaterializarCodigos;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterEstruturaInstuticionalVigentePorTurma;
+using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterPerfisPorLogin;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterTurmasPorIds;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterUeMaterializarCodigos;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterUePorId;
@@ -27,8 +29,9 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
     private readonly IRepositorioDre repositorioDre;
     private readonly IRepositorioUsuario repositorioUsuario;
     private readonly IUnitOfWork unitOfWork;
-    public AbrangenciaUseCase(IMediator mediator, IRepositorioAbrangencia repositorioAbrangencia, IRepositorioTurma repositorioTurma, IRepositorioUe repositorioUe, IRepositorioDre repositorioDre, 
-        IUnitOfWork unitOfWork, IRepositorioUsuario repositorioUsuario) : base(mediator)
+    private readonly ILogger<AbrangenciaUseCase> logger;
+    public AbrangenciaUseCase(IMediator mediator, IRepositorioAbrangencia repositorioAbrangencia, IRepositorioTurma repositorioTurma, IRepositorioUe repositorioUe, IRepositorioDre repositorioDre,
+        IUnitOfWork unitOfWork, IRepositorioUsuario repositorioUsuario, ILogger<AbrangenciaUseCase> logger) : base(mediator)
     {
         this.repositorioAbrangencia = repositorioAbrangencia;
         this.repositorioTurma = repositorioTurma;
@@ -36,18 +39,46 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
         this.repositorioDre = repositorioDre;
         this.unitOfWork = unitOfWork;
         this.repositorioUsuario = repositorioUsuario;
+        this.logger = logger;
     }
 
     public async Task<bool> Executar(MensagemRabbit param)
     {
         var usuario = param.ObterObjetoMensagem<AbrangenciaUsuarioPerfilDto>();
 
+        await ValidarPerfisEol(usuario);
+
         foreach (var perfil in usuario.Perfil)
         {
-            await ProcessarAbrangencia(usuario.Login, perfil);
+            try
+            {
+                await ProcessarAbrangencia(usuario.Login, perfil);
+            }
+            catch(Exception ex)
+            {
+                logger.LogError(ex, $"Erro ao processar abrangência para o usuário {usuario.Login} e perfil {perfil}");
+            }
         }
 
         return true;
+    }
+
+    private async Task ValidarPerfisEol(AbrangenciaUsuarioPerfilDto usuario)
+    {
+        if(string.IsNullOrWhiteSpace(usuario?.Login))
+            return;
+
+        var perfisEol = await mediator.Send(new ObterPerfisPorLoginQuery(usuario.Login));
+        if (!perfisEol?.Any() ?? true)
+            return;
+
+        usuario.Perfil ??= new List<Guid>();
+
+        foreach (var perfilEol in perfisEol!)
+        {
+            if (!usuario.Perfil.Contains(perfilEol))
+                usuario.Perfil.Add(perfilEol);
+        }
     }
 
     private async Task<bool> ProcessarAbrangencia(string login, Guid perfil)
