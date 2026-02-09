@@ -46,8 +46,6 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
     {
         var usuario = param.ObterObjetoMensagem<AbrangenciaUsuarioPerfilDto>();
 
-        await ValidarPerfisEol(usuario);
-
         foreach (var perfil in usuario.Perfil)
         {
             try
@@ -61,24 +59,6 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
         }
 
         return true;
-    }
-
-    private async Task ValidarPerfisEol(AbrangenciaUsuarioPerfilDto usuario)
-    {
-        if(string.IsNullOrWhiteSpace(usuario?.Login))
-            return;
-
-        var perfisEol = await mediator.Send(new ObterPerfisPorLoginQuery(usuario.Login));
-        if (!perfisEol?.Any() ?? true)
-            return;
-
-        usuario.Perfil ??= new List<Guid>();
-
-        foreach (var perfilEol in perfisEol!)
-        {
-            if (!usuario.Perfil.Contains(perfilEol))
-                usuario.Perfil.Add(perfilEol);
-        }
     }
 
     private async Task<bool> ProcessarAbrangencia(string login, Guid perfil)
