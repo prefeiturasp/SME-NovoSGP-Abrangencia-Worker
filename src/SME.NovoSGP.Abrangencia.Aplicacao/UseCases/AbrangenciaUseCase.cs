@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using SME.NovoSGP.Abrangencia.Aplicacao.Interfaces;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterAbrangenciaCompactaVigenteEolPorLoginEPerfil;
@@ -50,15 +50,53 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
         {
             try
             {
-                await ProcessarAbrangencia(usuario.Login, perfil);
+                await ProcessarTurmasUes();
+                //await ProcessarAbrangencia(usuario.Login, perfil);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.LogError(ex, $"Erro ao processar abrangência para o usuário {usuario.Login} e perfil {perfil}");
             }
         }
 
         return true;
+    }
+
+    private async Task ProcessarTurmasUes()
+    {
+        
+        var turmasSGP = await repositorioTurma.ListarTurmaPorAnoLetivo(DateTime.Now.Year);
+        var turmasFiltradas = turmasSGP.Where(t => t.UeId == 4407).ToList();
+
+        foreach (var turma in turmasFiltradas)
+        {
+            var turmasEOL = await mediator.Send(new ObterEstruturaInstuticionalVigentePorTurmaQuery(new[] {turma.CodigoTurma} ));
+
+            if (turmasEOL == null) continue;
+
+            var abrangenciaUe = turmasEOL.Dres[0].Ues[0];
+
+            if (turmasEOL.Dres[0].Ues.Count > 1)
+            {
+                // Se a turma estiver associada a mais de uma UE, isso indica um problema de dados no EOL que deve ser corrigido. Nesse cenário, optamos por não realizar a atualização da UE para evitar inconsistências.
+            }
+
+            var ue = await repositorioUe.ObterUePorUeId(Convert.ToInt32(turma.UeId));
+            if (ue.CodigoUe != abrangenciaUe.Codigo)
+                await AtualizarTurmas(turmasEOL.Dres[0].Ues[0], turma);
+        }
+    }
+
+    private async Task AtualizarTurmas(AbrangenciaUeRetornoEolDto abrangenciaUe, Turma turmaSGP)
+    {
+        var retornoUes = await repositorioUe.ObterUePorCodigoUe(abrangenciaUe.Codigo);// await mediator.Send(new ObterUeMaterializarCodigosQuery(new[] { abrangenciaUe.Codigo }));
+        var novaUe = retornoUes.FirstOrDefault();
+
+        if (novaUe != null && turmaSGP.UeId != novaUe.Id)
+        {
+            await repositorioTurma.AtualizarUeTurma(turmaSGP.Id, novaUe.Id);
+            turmaSGP.UeId = novaUe.Id;
+        }
     }
 
     private async Task<bool> ProcessarAbrangencia(string login, Guid perfil)

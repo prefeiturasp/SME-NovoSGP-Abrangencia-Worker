@@ -1,7 +1,8 @@
-﻿using Dapper;
+using Dapper;
 using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio.Base;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
+using SME.NovoSGP.Abrangencia.Infra.Dtos;
 using SME.NovoSGP.Abrangencia.Infra.EnvironmentVariables;
 using System.Data;
 
@@ -14,6 +15,74 @@ public class RepositorioUe : RepositorioBase<Ue>, IRepositorioUe
 
     public RepositorioUe(ConnectionStringOptions connectionStrings) : base(connectionStrings.SGP_Postgres)
     {
+    }
+
+    public async Task<IEnumerable<UeDto>> ListarUesDuplicadas()
+    {
+        using var conn = ObterConexaoLeitura();
+        try
+        {
+            var query = @"SELECT *
+                            FROM (
+                                SELECT *,
+                                       COUNT(*) OVER (PARTITION BY ue_id) AS total_ocorrencias
+                                FROM ue
+                            ) t
+                            WHERE total_ocorrencias > 1";
+
+            return await conn.QueryAsync<UeDto>(query);
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
+    }
+
+    public async Task<IEnumerable<Ue>> ObterUePorCodigoUe(string codigoUe)
+    {
+        using var conn = ObterConexaoLeitura();
+        try
+        {
+            var query = @"SELECT 
+                                id, 
+                                ue_id CodigoUe, 
+                                dre_id DreId, 
+                                nome, 
+                                tipo_escola, data_atualizacao 
+                            FROM public.ue
+                            where ue_id = @codigoUe";
+
+            return await conn.QueryAsync<Ue>(query, new { codigoUe });
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
+    }
+
+    public async Task<Ue> ObterUePorUeId(int ueId)
+    {
+        using var conn = ObterConexaoLeitura();
+        try
+        {
+            var query = @"SELECT 
+                                id, 
+                                ue_id CodigoUe, 
+                                dre_id DreId, 
+                                nome, 
+                                tipo_escola, data_atualizacao 
+                            FROM public.ue
+                            where id = @ueId";
+
+            return await conn.QueryFirstOrDefaultAsync<Ue>(query, new { ueId });
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
     }
 
     public async Task<IEnumerable<Ue>> SincronizarAsync(IEnumerable<Ue> entidades, IEnumerable<Dre> dres)

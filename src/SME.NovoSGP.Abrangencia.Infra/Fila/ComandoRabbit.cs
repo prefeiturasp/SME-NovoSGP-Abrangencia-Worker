@@ -3,7 +3,7 @@
 public class ComandoRabbit
 {
     public ComandoRabbit(string nomeProcesso, Type tipoCasoUso, ulong quantidadeReprocessamentoDeadLetter = 3,
-        int ttl = 10 * 60 * 100)
+        int ttl = 600000)
     {
         NomeProcesso = nomeProcesso;
         TipoCasoUso = tipoCasoUso;

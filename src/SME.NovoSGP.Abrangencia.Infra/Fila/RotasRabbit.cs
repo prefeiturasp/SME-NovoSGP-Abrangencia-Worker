@@ -5,5 +5,5 @@ public class RotasRabbit
     public static string RotaLogs => "ApplicationLog";
     public static string Log => "ApplicationLog";
 
-    public const string SincronizarAbrangencia = "sgp.abrangencia.worker.tratar";
+    public const string SincronizarAbrangencia = "sgp.abrangencia.worker.sync-teste";
 }

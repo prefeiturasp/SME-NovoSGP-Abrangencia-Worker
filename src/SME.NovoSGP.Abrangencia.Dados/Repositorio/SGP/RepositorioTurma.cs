@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dados.Repositorio.Base;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
@@ -256,6 +256,81 @@ public class RepositorioTurma : RepositorioBase<Turma>, IRepositorioTurma
                         where id = any(@turmasIds)";
 
             return await conn.QueryAsync<Turma>(query, new { turmasIds });
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
+    }
+
+    public async Task<IEnumerable<Turma>> ObterTurmasPorUeId(long ueId)
+    {
+        using var conn = ObterConexaoLeitura();
+        try
+        {
+            var query = @"SELECT 
+                                id,
+                                turma_id CodigoTurma,   
+                                nome,
+                                qt_duracao_aula ,
+                                semestre,
+                                tipo_turno,
+                                serie_ensino,
+                                ue_id UeId,
+                                nome_filtro,
+                                modalidade_codigo,
+                               ano_letivo AnoLetivo
+                            FROM turma
+                                where ue_id = @ueId
+                                and ano_letivo = 2026";
+
+            return await conn.QueryAsync<Turma>(query, new { ueId });
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
+    }
+
+    public async Task<bool> AtualizarUeTurma(long turmaId, long ueId)
+    {
+        using var conn = ObterConexao();
+        try
+        {
+            var query = @"update turma set ue_id = @ueId where id = @turmaId";
+            await conn.ExecuteAsync(query, new { turmaId, ueId });
+            return true;
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
+    }
+
+    public async Task<IEnumerable<Turma>> ListarTurmaPorAnoLetivo(int anoLetivo)
+    {
+        using var conn = ObterConexaoLeitura();
+        try
+        {
+            var query = @"SELECT 
+                                id,
+                                turma_id CodigoTurma,   
+                                nome,
+                                qt_duracao_aula ,
+                                semestre,
+                                tipo_turno,
+                                serie_ensino,
+                                ue_id UeId,
+                                nome_filtro,
+                                modalidade_codigo,
+                               ano_letivo 
+                            FROM turma
+                                where ano_letivo = @anoLetivo";
+
+            return await conn.QueryAsync<Turma>(query, new { anoLetivo });
         }
         finally
         {
