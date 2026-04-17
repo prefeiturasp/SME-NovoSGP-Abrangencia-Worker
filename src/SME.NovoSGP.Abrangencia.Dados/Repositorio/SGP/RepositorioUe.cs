@@ -17,6 +17,28 @@ public class RepositorioUe : RepositorioBase<Ue>, IRepositorioUe
     {
     }
 
+    public async Task<IEnumerable<Ue>> ListarUes()
+    {
+        using var conn = ObterConexaoLeitura();
+        try
+        {
+            var query = @"SELECT 
+                                id, 
+                                ue_id CodigoUe, 
+                                dre_id DreId, 
+                                nome, 
+                                tipo_escola, data_atualizacao 
+                            FROM public.ue";
+
+            return await conn.QueryAsync<Ue>(query);
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
+    }
+
     public async Task<IEnumerable<UeDto>> ListarUesDuplicadas()
     {
         using var conn = ObterConexaoLeitura();

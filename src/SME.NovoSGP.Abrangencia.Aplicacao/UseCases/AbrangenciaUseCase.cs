@@ -64,11 +64,16 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
 
     private async Task ProcessarTurmasUes()
     {
-        
-        var turmasSGP = await repositorioTurma.ListarTurmaPorAnoLetivo(DateTime.Now.Year);
-        var turmasFiltradas = turmasSGP.Where(t => t.UeId == 4407).ToList();
+        string caminhoRelatorio = "relatorio_turmas.csv";
+        if (!System.IO.File.Exists(caminhoRelatorio))
+            System.IO.File.WriteAllText(caminhoRelatorio, "turma_id;nome;ue_SGP;ue_EOL\n");
 
-        foreach (var turma in turmasFiltradas)
+        var turmasSGP = await repositorioTurma.ListarTurmaPorAnoLetivo(DateTime.Now.Year);
+        var ues = await repositorioUe.ListarUes();
+        //var turmasFiltradas = turmasSGP.Where(t => t.UeId == 4407).ToList();
+        int linha = 1;
+
+        foreach (var turma in turmasSGP)
         {
             var turmasEOL = await mediator.Send(new ObterEstruturaInstuticionalVigentePorTurmaQuery(new[] {turma.CodigoTurma} ));
 
@@ -81,20 +86,31 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
                 // Se a turma estiver associada a mais de uma UE, isso indica um problema de dados no EOL que deve ser corrigido. Nesse cenário, optamos por não realizar a atualização da UE para evitar inconsistências.
             }
 
-            var ue = await repositorioUe.ObterUePorUeId(Convert.ToInt32(turma.UeId));
-            if (ue.CodigoUe != abrangenciaUe.Codigo)
-                await AtualizarTurmas(turmasEOL.Dres[0].Ues[0], turma);
+            var ue = ues.Where(u => u.Id == turma.UeId).FirstOrDefault();
+
+            logger.LogInformation($"{linha}");
+            linha++;
+
+            if (ue?.CodigoUe != abrangenciaUe.Codigo)
+            {
+                var linhaRelatorio = $"{turma.CodigoTurma};{turma.Nome};{turma.UeId};{abrangenciaUe.Codigo}\n";
+                System.IO.File.AppendAllText(caminhoRelatorio, linhaRelatorio);
+
+                await AtualizarTurmas(turmasEOL.Dres[0].Ues[0], turma, ues);
+            }
         }
     }
 
-    private async Task AtualizarTurmas(AbrangenciaUeRetornoEolDto abrangenciaUe, Turma turmaSGP)
+    private async Task AtualizarTurmas(AbrangenciaUeRetornoEolDto abrangenciaUe, Turma turmaSGP, IEnumerable<Ue> ues)
     {
-        var retornoUes = await repositorioUe.ObterUePorCodigoUe(abrangenciaUe.Codigo);// await mediator.Send(new ObterUeMaterializarCodigosQuery(new[] { abrangenciaUe.Codigo }));
-        var novaUe = retornoUes.FirstOrDefault();
+        var novaUe =  ues.Where(u => u.CodigoUe == abrangenciaUe.Codigo).FirstOrDefault();
 
         if (novaUe != null && turmaSGP.UeId != novaUe.Id)
         {
-            await repositorioTurma.AtualizarUeTurma(turmaSGP.Id, novaUe.Id);
+            var sqlUpdate = $"update turma set ue_id = {novaUe.Id} where turma_id = '{turmaSGP.CodigoTurma}' and ano_letivo = 2026;\n";
+            System.IO.File.AppendAllText("updates_turma.csv", sqlUpdate);
+
+            //await repositorioTurma.AtualizarUeTurma(turmaSGP.Id, novaUe.Id);
             turmaSGP.UeId = novaUe.Id;
         }
     }

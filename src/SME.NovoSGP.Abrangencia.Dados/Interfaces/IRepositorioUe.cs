@@ -7,6 +7,7 @@ public interface IRepositorioUe
 {
     Task<IEnumerable<Ue>> SincronizarAsync(IEnumerable<Ue> entidades, IEnumerable<Dre> dres);
     Task<IEnumerable<Ue>> ObterUePorCodigoUe(string codigoUe);
+    Task<IEnumerable<Ue>> ListarUes();
     Task<Ue> ObterUePorUeId(int ueId);
     Task<IEnumerable<UeDto>> ListarUesDuplicadas();
 }
