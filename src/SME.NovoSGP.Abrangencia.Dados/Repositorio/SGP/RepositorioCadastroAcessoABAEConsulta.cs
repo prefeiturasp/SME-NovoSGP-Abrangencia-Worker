@@ -43,6 +43,7 @@ namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP
 	                                    cadastro_acesso_abae a
                                     where
 	                                    not a.excluido
+                                        and a.situacao 
 	                                    and a.cpf = @cpf";
 
                 return await conn.QueryFirstOrDefaultAsync<CadastroAcessoABAEDto>(query, new
