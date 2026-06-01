@@ -50,7 +50,6 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         if (!string.IsNullOrEmpty(elasticOptions.CertificateFingerprint))
             connectionSettings.CertificateFingerprint(elasticOptions.CertificateFingerprint);
 
-        // CORREÇÃO DE SINTAXE APLICADA AQUI: !string.IsNullOrEmpty(...)
         if (!string.IsNullOrEmpty(elasticOptions.Usuario) && !string.IsNullOrEmpty(elasticOptions.Senha))
         {
             connectionSettings.BasicAuthentication(elasticOptions.Usuario, elasticOptions.Senha);
@@ -59,7 +58,6 @@ static void ConfigureServices(IServiceCollection services, IConfiguration config
         return new ElasticClient(connectionSettings);
     });
 
-    // Configura a telemetria e o Dapper.
     services.AddSingleton<IServicoTelemetria>(provider =>
     {
         var telemetriaOptions = provider.GetRequiredService<IOptions<TelemetriaOptions>>().Value;

@@ -13,6 +13,8 @@ public static class RegistrarMapeamentos
             config.AddMap(new UeMap());
             config.AddMap(new TurmaMap());
             config.AddMap(new AbrangenciaMap());
+            config.AddMap(new CadastroAcessoABAEMap());
+            config.AddMap(new UsuarioMap());
             config.ForDommel();
         });
     }

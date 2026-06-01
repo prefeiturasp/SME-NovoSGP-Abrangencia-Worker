@@ -43,4 +43,45 @@ public class RepositorioUeConsulta : RepositorioBase<Ue>, IRepositorioUeConsulta
             conn.Dispose();
         }
     }
+
+    public async Task<Ue> ObterUeComDrePorId(long ueId)
+    {
+        using var conn = ObterConexaoLeitura();
+        try
+        {
+            var query = @"select
+	                        u.id,
+	                        u.ue_id as codigoUe,
+	                        u.data_atualizacao::timestamp as dataAtualizacao,
+	                        u.dre_id as dreId,
+	                        u.nome,
+	                        u.tipo_escola as tipoEscola,
+	                        d.id,
+	                        d.abreviacao,
+	                        d.dre_id as codigoDre,
+	                        d.data_atualizacao::timestamp as dataAtualizacao,
+	                        d.nome
+                        from
+	                        ue u
+                        inner join dre d on
+	                        d.id = u.dre_id
+                        where
+	                        u.id = @ueId";
+
+            var resultado = await conn.QueryAsync<Ue, Dre, Ue>(query, (ue, dre) =>
+            {
+                ue.AdicionarDre(dre);
+                return ue;
+            },
+            new { ueId },
+            splitOn: "id");
+
+            return resultado.FirstOrDefault()!;
+        }
+        finally
+        {
+            conn.Close();
+            conn.Dispose();
+        }
+    }
 }
