@@ -30,7 +30,7 @@ public static class RegistraDependencias
         RegistrarServicos(services, configuration);
         RegistrarCasosDeUso(services);
         //RegistrarContextos(services);
-        RegistrarMapeamentos.Registrar();
+        //RegistrarMapeamentos.Registrar();
     }
 
     private static void RegistrarRepositorios(IServiceCollection services)
@@ -44,6 +44,7 @@ public static class RegistraDependencias
         services.TryAddScoped<IRepositorioUe, RepositorioUe>();
         services.TryAddScoped<IRepositorioUeConsulta, RepositorioUeConsulta>();
         services.TryAddScoped<IRepositorioUsuario, RepositorioUsuario>();
+        services.TryAddScoped<IRepositorioCadastroAcessoABAEConsulta, RepositorioCadastroAcessoABAEConsulta>();
 
     }
 
