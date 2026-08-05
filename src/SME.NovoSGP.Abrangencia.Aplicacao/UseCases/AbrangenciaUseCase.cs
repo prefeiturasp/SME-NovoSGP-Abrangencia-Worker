@@ -74,39 +74,14 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
 
         if (ehSupervisor)
         {
-            var (uesIds, dresCobertos) = await ObterAbrangenciaEolSupervisor(login);
-
-            var tarefaAbrangenciaUes = uesIds.Any()
-                ? mediator.Send(new ObterAbrangenciaParaSupervisorQuery(uesIds.ToArray()))
-                : Task.FromResult<AbrangenciaRetornoEolDto>(null);
-
-            var tarefaDresLotacaoEol = mediator.Send(new ObterAbrangenciaCompactaVigenteEolPorLoginEPerfilQuery(login, perfil));
-
-            await Task.WhenAll(tarefaAbrangenciaUes, tarefaDresLotacaoEol);
-
-            string[] idUesSupervisor = Array.Empty<string>();
-            AbrangenciaCargoRetornoEolDTO abrangenciaBase = null;
-
-            var abrangenciaSupervisor = tarefaAbrangenciaUes.Result;
-            if (abrangenciaSupervisor != null)
-            {
-                idUesSupervisor = abrangenciaSupervisor.Dres.SelectMany(x => x.Ues.Select(y => y.Codigo)).ToArray();
-                abrangenciaBase = abrangenciaSupervisor.Abrangencia;
-            }
-
-            var idDresFaltantes = (tarefaDresLotacaoEol.Result?.IdDres ?? Array.Empty<string>())
-                .Where(codigo => !dresCobertos.Contains(codigo))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            if (!idUesSupervisor.Any() && !idDresFaltantes.Any())
+            var uesIds = await ObterAbrangenciaEolSupervisor(login);
+            if (!uesIds.Any())
                 return true;
-
+            var abrangenciaSupervisor = await mediator.Send(new ObterAbrangenciaParaSupervisorQuery(uesIds.ToArray()));
             abrangenciaEol = new AbrangenciaCompactaVigenteRetornoEOLDTO()
             {
-                Abrangencia = abrangenciaBase,
-                IdUes = idUesSupervisor,
-                IdDres = idDresFaltantes
+                Abrangencia = abrangenciaSupervisor.Abrangencia,
+                IdUes = abrangenciaSupervisor.Dres.SelectMany(x => x.Ues.Select(y => y.Codigo)).ToArray()
             };
         }
         else if (ehProfessorCJ)
@@ -162,15 +137,14 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
         return true;
     }
 
-    private async Task<(string[] UeIds, HashSet<string> DresCobertos)> ObterAbrangenciaEolSupervisor(string login)
+    private async Task<string[]> ObterAbrangenciaEolSupervisor(string login)
     {
         var listaEscolasDresSupervior = await mediator.Send(new ObterAbrangenciaEolSupervisorQuery(login, string.Empty));
 
-        var ueIds = listaEscolasDresSupervior.Select(escola => escola.UeId).Where(id => !string.IsNullOrWhiteSpace(id)).ToArray();
-        var dresCobertos = listaEscolasDresSupervior.Select(escola => escola.DreId).Where(id => !string.IsNullOrWhiteSpace(id))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (listaEscolasDresSupervior.Any())
+            return listaEscolasDresSupervior.Select(escola => escola.UeId).ToArray();
 
-        return (ueIds, dresCobertos);
+        return Array.Empty<string>();
     }
 
     private async Task<(IEnumerable<Dre> Dres, IEnumerable<Ue> Ues, IEnumerable<Turma> Turmas)> MaterializarEstruturaInstitucional(AbrangenciaCompactaVigenteRetornoEOLDTO abrangenciaEol)
@@ -222,15 +196,7 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
         try
         {
             if (ehSupervisor)
-            {
-                var sinteticaUes = abrangenciaSintetica.Where(a => a.UeId != 0);
-                var sinteticaDres = abrangenciaSintetica.Where(a => a.UeId == 0 && a.TurmaId == 0 && a.DreId != 0);
-
-                await SincronizarAbrangenciaPorUes(sinteticaUes, estrutura.Ues, login, perfil);
-
-                if (estrutura.Dres.Any())
-                    await SincronizarAbrangenciaSupervisorDresAdicional(sinteticaDres, estrutura.Dres, login, perfil);
-            }
+                await SincronizarAbrangenciaPorUes(abrangenciaSintetica, estrutura.Ues, login, perfil);
             else
             {
                 switch (abrangencia)
@@ -299,17 +265,6 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
                 DreId = d.Id
             },
             login);
-    }
-
-    private async Task SincronizarAbrangenciaSupervisorDresAdicional(IEnumerable<AbrangenciaSintetica> sinteticaDresAtuais, IEnumerable<Dre> dresFaltantesMaterializadas, string login, Guid perfil)
-    {
-        var idsJaExistentes = sinteticaDresAtuais.Select(a => a.DreId).ToHashSet();
-        var novas = dresFaltantesMaterializadas.Where(d => !idsJaExistentes.Contains(d.Id));
-
-        if (novas.Any())
-            await repositorioAbrangencia.InserirAbrangencias(
-                novas.Select(d => new Dominio.Entidades.Abrangencia { Perfil = perfil, DreId = d.Id }),
-                login);
     }
 
     private async Task SincronizarAbrangenciaGenerico<T>(
