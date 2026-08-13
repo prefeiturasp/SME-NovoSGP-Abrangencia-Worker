@@ -5,6 +5,6 @@ namespace SME.NovoSGP.Abrangencia.Dados.Interfaces
 {
     public interface IRepositorioCadastroAcessoABAEConsulta
     {
-        Task<CadastroAcessoABAEDto> ObterCadastroABAEPorCpf(string cpf);
+        Task<IEnumerable<CadastroAcessoABAEDto>> ObterCadastrosABAEPorCpf(string cpf);
     }
 }

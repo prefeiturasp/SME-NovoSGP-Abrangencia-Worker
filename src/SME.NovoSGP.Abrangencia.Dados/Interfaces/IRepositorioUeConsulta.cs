@@ -6,5 +6,5 @@ public interface IRepositorioUeConsulta
 {
     Task<(List<Ue> Ues, string[] CodigosUesNaoEncontradas)> MaterializarCodigosUe(string[] idUes);
 
-    Task<Ue> ObterUeComDrePorId(long ueId);
+    Task<IEnumerable<Ue>> ObterUesComDrePorIds(long[] ueIds);
 }

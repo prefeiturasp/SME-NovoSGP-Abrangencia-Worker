@@ -15,7 +15,7 @@ namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP
         {
         }
 
-        public async Task<CadastroAcessoABAEDto> ObterCadastroABAEPorCpf(string cpf)
+        public async Task<IEnumerable<CadastroAcessoABAEDto>> ObterCadastrosABAEPorCpf(string cpf)
         {
             using var conn = ObterConexao();
             try
@@ -43,9 +43,11 @@ namespace SME.NovoSGP.Abrangencia.Dados.Repositorio.SGP
 	                                    cadastro_acesso_abae a
                                     where
 	                                    not a.excluido
-	                                    and a.cpf = @cpf";
+	                                    and a.cpf = @cpf
+                                    order by
+	                                    a.id";
 
-                return await conn.QueryFirstOrDefaultAsync<CadastroAcessoABAEDto>(query, new
+                return await conn.QueryAsync<CadastroAcessoABAEDto>(query, new
                 {
                     cpf
                 });
