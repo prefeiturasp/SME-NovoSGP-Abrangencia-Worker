@@ -44,7 +44,7 @@ public class RepositorioUeConsulta : RepositorioBase<Ue>, IRepositorioUeConsulta
         }
     }
 
-    public async Task<Ue> ObterUeComDrePorId(long ueId)
+    public async Task<IEnumerable<Ue>> ObterUesComDrePorIds(long[] ueIds)
     {
         using var conn = ObterConexaoLeitura();
         try
@@ -66,17 +66,15 @@ public class RepositorioUeConsulta : RepositorioBase<Ue>, IRepositorioUeConsulta
                         inner join dre d on
 	                        d.id = u.dre_id
                         where
-	                        u.id = @ueId";
+	                        u.id = any(@ueIds)";
 
-            var resultado = await conn.QueryAsync<Ue, Dre, Ue>(query, (ue, dre) =>
+            return await conn.QueryAsync<Ue, Dre, Ue>(query, (ue, dre) =>
             {
                 ue.AdicionarDre(dre);
                 return ue;
             },
-            new { ueId },
+            new { ueIds },
             splitOn: "id");
-
-            return resultado.FirstOrDefault()!;
         }
         finally
         {

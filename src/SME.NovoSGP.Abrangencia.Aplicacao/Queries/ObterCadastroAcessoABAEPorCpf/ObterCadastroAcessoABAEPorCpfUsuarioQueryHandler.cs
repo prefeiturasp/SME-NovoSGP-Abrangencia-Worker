@@ -5,7 +5,7 @@ using SME.NovoSGP.Abrangencia.Infra.Dtos;
 
 namespace SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterCadastroAcessoABAEPorCpf
 {
-    public class ObterCadastroAcessoABAEPorCpfUsuarioQueryHandler : IRequestHandler<ObterCadastroAcessoABAEPorCpfQuery, CadastroAcessoABAEDto>
+    public class ObterCadastroAcessoABAEPorCpfUsuarioQueryHandler : IRequestHandler<ObterCadastroAcessoABAEPorCpfQuery, IEnumerable<CadastroAcessoABAEDto>>
     {
         private readonly IRepositorioCadastroAcessoABAEConsulta repositorioCadastroAcessoABAEConsulta;
         public ObterCadastroAcessoABAEPorCpfUsuarioQueryHandler(IRepositorioCadastroAcessoABAEConsulta repositorioCadastroAcessoABAEConsulta)
@@ -13,9 +13,9 @@ namespace SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterCadastroAcessoABAEPorCp
             this.repositorioCadastroAcessoABAEConsulta = repositorioCadastroAcessoABAEConsulta;
         }
 
-        public Task<CadastroAcessoABAEDto> Handle(ObterCadastroAcessoABAEPorCpfQuery request, CancellationToken cancellationToken)
+        public Task<IEnumerable<CadastroAcessoABAEDto>> Handle(ObterCadastroAcessoABAEPorCpfQuery request, CancellationToken cancellationToken)
         {
-            return repositorioCadastroAcessoABAEConsulta.ObterCadastroABAEPorCpf(request.Cpf);
+            return repositorioCadastroAcessoABAEConsulta.ObterCadastrosABAEPorCpf(request.Cpf);
         }
     }
 }

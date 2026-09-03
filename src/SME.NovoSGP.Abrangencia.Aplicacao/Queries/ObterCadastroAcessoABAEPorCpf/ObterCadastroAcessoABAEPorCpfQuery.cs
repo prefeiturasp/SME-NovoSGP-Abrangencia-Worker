@@ -4,7 +4,7 @@ using SME.NovoSGP.Abrangencia.Infra.Dtos;
 
 namespace SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterCadastroAcessoABAEPorCpf
 {
-    public class ObterCadastroAcessoABAEPorCpfQuery : IRequest<CadastroAcessoABAEDto>
+    public class ObterCadastroAcessoABAEPorCpfQuery : IRequest<IEnumerable<CadastroAcessoABAEDto>>
     {
         public ObterCadastroAcessoABAEPorCpfQuery(string cpf)
         {
