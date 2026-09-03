@@ -10,7 +10,7 @@ using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterEstruturaInstuticionalVigen
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterPerfisPorLogin;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterTurmasPorIds;
 using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterUeMaterializarCodigos;
-using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterUePorId;
+using SME.NovoSGP.Abrangencia.Aplicacao.Queries.ObterUesPorIds;
 using SME.NovoSGP.Abrangencia.Dados.Interfaces;
 using SME.NovoSGP.Abrangencia.Dominio.Constantes;
 using SME.NovoSGP.Abrangencia.Dominio.Entidades;
@@ -93,20 +93,22 @@ public class AbrangenciaUseCase : AbstractUseCase, IAbrangenciaUseCase
             if (usuario is not null)
             {
                 //se for usuário ABAE, o CPF e o login serão os mesmos
-                var cadastroABAE = await mediator.Send(new ObterCadastroAcessoABAEPorCpfQuery(login));
+                var cadastrosABAE = await mediator.Send(new ObterCadastroAcessoABAEPorCpfQuery(login));
 
-                if (cadastroABAE?.UeId is not null)
+                var uesIdsABAE = cadastrosABAE.Select(c => c.UeId).ToArray();
+
+                if (uesIdsABAE.Any())
                 {
-                    // Obter informações da UE e DRE baseadas no cadastro ABAE
-                    var ue = await mediator.Send(new ObterUePorIdQuery(cadastroABAE.UeId));
+                    // Obter informações das UEs e DREs baseadas nos cadastros ABAE
+                    var ues = (await mediator.Send(new ObterUesPorIdsQuery(uesIdsABAE)));
 
-                    if (ue?.Dre is not null)
+                    if (ues.Any())
                     {
                         abrangenciaEol = new AbrangenciaCompactaVigenteRetornoEOLDTO()
                         {
                             Abrangencia = new AbrangenciaCargoRetornoEolDTO { Abrangencia = Dominio.Enumerados.Abrangencia.UE },
-                            IdDres = new[] { ue.Dre.CodigoDre },
-                            IdUes = new[] { ue.CodigoUe }
+                            IdDres = ues.Select(ue => ue.Dre.CodigoDre).ToArray(),
+                            IdUes = ues.Select(ue => ue.CodigoUe).ToArray()
                         };
                     }
                 }
